@@ -1,13 +1,9 @@
 from typing import List, Dict
 
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session
 
-from core.db import engine
 from models import Card, CardVersion, Collection, Rarity
 from scripts.scraper.ligaonepiece_list import scrap_list
-
-SessionLocal = sessionmaker(bind=engine)
-
 
 
 class ScrapLiga:
@@ -51,14 +47,16 @@ class ScrapLiga:
     def process_scraped_data(self, scraped_data: List[Dict[str, str]]) -> List[Dict]:
         processed_data = []
         for item in scraped_data:
-            rarity_int = item.get('iR', 1)
+            rarity_int = item.get('iR', -1)
             rarity_str = Rarity.from_int(rarity_int)
-            
+            if rarity_str is None or rarity_str == Rarity.DON.label:
+                continue
+
             processed_data.append({
                 'nome': item.get('nEN'),
+                'colecao': item.get('sN', '').split('-')[0],
                 'codigo': '-'.join(item.get('sN', '').split('-')[:2]),
                 'codigo_completo': item.get('sN', ''),
-                'colecao': item.get('sSigla', ''),
                 'rarity': rarity_str,
             })
         return processed_data

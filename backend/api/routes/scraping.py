@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from scraping.scrap_liga import ScrapLiga, SessionLocal
+from core.db import SessionLocal
+from services.scraping.scrap_liga import ScrapLiga
 
 router = APIRouter()
 

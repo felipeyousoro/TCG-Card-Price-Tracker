@@ -16,6 +16,7 @@ class Rarity(Enum):
     UNCOMMON = 2
     RARE = 3
     SR = 4
+    PROMO = 5
     LEADER = 6
     SECRET = 7
     DON = 8
@@ -27,19 +28,21 @@ class Rarity(Enum):
             2: "Uncommon",
             3: "Rare",
             4: "SR",
+            5: "Promo",
             6: "Leader",
             7: "Secret",
-            8: "Don"
+            8: "Don",
         }
-        return labels.get(self.value, "Common")
+
+        return labels.get(self.value)
 
     @classmethod
-    def from_int(cls, rarity_int: int) -> str:
+    def from_int(cls, rarity_int: int) -> str | None:
         try:
             rarity = cls(rarity_int)
             return rarity.label
         except ValueError:
-            return cls.COMMON.label
+            return None
 
 
 class Game(Base):
