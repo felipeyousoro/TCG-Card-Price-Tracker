@@ -1,8 +1,8 @@
-"""initial schema
+"""create_base_tables
 
-Revision ID: 0a374f29bfad
+Revision ID: c34601ed1f4d
 Revises: 
-Create Date: 2026-01-01 20:51:49.267800
+Create Date: 2026-01-02 21:20:20.310796
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0a374f29bfad'
+revision: str = 'c34601ed1f4d'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -39,7 +39,7 @@ def upgrade() -> None:
     )
     op.create_table('card',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('code', sa.String(), nullable=False),
     sa.Column('rarity', sa.String(), nullable=False),
     sa.Column('collection_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['collection_id'], ['collection.id'], ),
@@ -47,7 +47,8 @@ def upgrade() -> None:
     )
     op.create_table('card_version',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('type', sa.String(), nullable=False),
+    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('code', sa.String(), nullable=False),
     sa.Column('card_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['card_id'], ['card.id'], ),
     sa.PrimaryKeyConstraint('id')

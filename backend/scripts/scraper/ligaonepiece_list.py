@@ -33,7 +33,8 @@ def scrap_list(url: str = "") -> List[Dict[str, str]]:
                         result.append({
                             'nEN': card.get('nEN', ''),
                             'sN': card.get('sN', ''),
-                            'sSigla': card.get('sSigla', '')
+                            'sSigla': card.get('sSigla', ''),
+                            'iR': card.get('iR', 0)
                         })
                     break
                 except json.JSONDecodeError:
