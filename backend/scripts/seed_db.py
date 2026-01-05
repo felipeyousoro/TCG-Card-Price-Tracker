@@ -1,6 +1,13 @@
+import sys
+from pathlib import Path
 from sqlalchemy.orm import sessionmaker
-from models import Game, Supplier
+
+backend_dir = Path(__file__).parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
+
 from core.db import engine
+from models import Game, Supplier
 
 SessionLocal = sessionmaker(bind=engine)
 

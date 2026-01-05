@@ -6,7 +6,7 @@ import requests
 from bs4 import BeautifulSoup
 
 
-def scrap_list(url: str = "") -> List[Dict[str, str]]:
+def scrap_collection(url: str = "") -> List[Dict[str, str]]:
     if not url:
         return []
 

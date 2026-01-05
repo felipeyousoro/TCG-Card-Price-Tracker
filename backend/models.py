@@ -5,6 +5,7 @@ from sqlalchemy import (
     String,
     ForeignKey,
     Text,
+    DECIMAL
 )
 from sqlalchemy.orm import relationship, declarative_base
 
@@ -44,6 +45,41 @@ class Rarity(Enum):
         except ValueError:
             return None
 
+class GameName(Enum):
+    ONE_PIECE = 1
+
+    @property
+    def label(self) -> str:
+        labels = {
+            1: "One Piece",
+        }
+        return labels.get(self.value)
+
+    @classmethod
+    def from_int(cls, game_int: int) -> str | None:
+        try:
+            game = cls(game_int)
+            return game.label
+        except ValueError:
+            return None
+
+class SupplierName(Enum):
+    LIGA_ONE_PIECE = 1
+
+    @property
+    def label(self) -> str:
+        labels = {
+            1: "Liga One Piece",
+        }
+        return labels.get(self.value)
+
+    @classmethod
+    def from_int(cls, supplier_int: int) -> str | None:
+        try:
+            supplier = cls(supplier_int)
+            return supplier.label
+        except ValueError:
+            return None
 
 class Game(Base):
     __tablename__ = "game"
@@ -106,10 +142,11 @@ class CardStock(Base):
 
     id = Column(Integer, primary_key=True)
 
+    lowest_price = Column(DECIMAL, nullable=False)
+    avg_price = Column(DECIMAL, nullable=False)
+
     card_version_id = Column(Integer, ForeignKey("card_version.id"), nullable=False)
     supplier_id = Column(Integer, ForeignKey("supplier.id"), nullable=False)
-
-    url = Column(Text, nullable=False)
 
     card_version = relationship("CardVersion", back_populates="stocks")
     supplier = relationship("Supplier", back_populates="stocks")

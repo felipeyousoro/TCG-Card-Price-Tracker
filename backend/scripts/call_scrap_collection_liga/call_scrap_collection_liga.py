@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List
 
 API_BASE_URL = "http://localhost:8000"
-ENDPOINT = "/scrap-list-liga"
+ENDPOINT = "/liga/scrap-collection"
 JSON_FILE = "listas_liga.json"
 
 

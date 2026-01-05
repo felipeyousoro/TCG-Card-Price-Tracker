@@ -3,7 +3,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from core.db import SessionLocal
-from services.scraping.scrap_liga import ScrapLiga
+from models import CardVersion
+from services.scraping.ScrapLiga import ScrapLiga
 
 router = APIRouter()
 
@@ -18,12 +19,24 @@ def get_db():
 class ScrapListRequest(BaseModel):
     url: str
 
-@router.post("/scrap-list-liga")
-async def scrap_liga_endpoint(request: ScrapListRequest, db: Session = Depends(get_db)):
+
+@router.post("/liga/scrap-collection")
+# TODO: trocar pra get
+async def scrap_collection_liga(request: ScrapListRequest, db: Session = Depends(get_db)):
     try:
         scraper = ScrapLiga(session=db)
-        scraper.scrap_and_insert(request.url)
+        scraper.scrap_collection(request.url)
         return {"status": "success", "message": "Data scraped and inserted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@router.get("/liga/scrap-card/{card_id}")
+async def scrap_card_liga(card_id: int, db: Session = Depends(get_db)):
+    try:
+        card = db.get(CardVersion, card_id)
+        scraper = ScrapLiga(session=db)
+        scraper.scrap_card(card)
+        return {"status": "success", "message": "Card data scraped and inserted successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

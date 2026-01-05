@@ -1,8 +1,8 @@
-"""create_base_tables
+"""initial schema
 
-Revision ID: c34601ed1f4d
+Revision ID: 4e582581ee30
 Revises: 
-Create Date: 2026-01-02 21:20:20.310796
+Create Date: 2026-01-04 23:16:57.965366
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'c34601ed1f4d'
+revision: str = '4e582581ee30'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -55,9 +55,10 @@ def upgrade() -> None:
     )
     op.create_table('card_stock',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('lowest_price', sa.DECIMAL(), nullable=False),
+    sa.Column('avg_price', sa.DECIMAL(), nullable=False),
     sa.Column('card_version_id', sa.Integer(), nullable=False),
     sa.Column('supplier_id', sa.Integer(), nullable=False),
-    sa.Column('url', sa.Text(), nullable=False),
     sa.ForeignKeyConstraint(['card_version_id'], ['card_version.id'], ),
     sa.ForeignKeyConstraint(['supplier_id'], ['supplier.id'], ),
     sa.PrimaryKeyConstraint('id')
