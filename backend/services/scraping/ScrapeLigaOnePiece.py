@@ -4,16 +4,15 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 
 from models import OnePieceCard, OnePieceCardVersion, Collection, Rarity, OnePieceCardStock, GameName, SupplierName
-from scripts.scraper.ligaonepiece_card import scrap_card
-from scripts.scraper.ligaonepiece_collection import scrap_collection
+from scripts.scraper.ligaonepiece_scraper import scrape_card, scrape_collection
 
 
-class ScrapLiga:
+class ScrapeLigaOnePiece:
     def __init__(self, session: Session):
         self.session = session
 
-    def scrap_collection(self, url: str) -> None:
-        scraped_data = scrap_collection(url)
+    def scrape_collection(self, url: str) -> None:
+        scraped_data = scrape_collection(url)
         processed_data = self.__process_scraped_collection(scraped_data)
 
         for data in processed_data:
@@ -50,10 +49,10 @@ class ScrapLiga:
         base_url = "https://www.ligaonepiece.com.br/?view=cards/card&card=" + card.name.replace("&", "%26") + '&ed=' + card.collection_print + '&num=' + card.code
         return base_url
 
-    def scrap_card(self, card: OnePieceCardVersion) -> None:
+    def scrape_card(self, card: OnePieceCardVersion) -> None:
         url = self.__build_card_url(card)
         print(url)
-        scraped_data = scrap_card(url)
+        scraped_data = scrape_card(url)
 
         scraped_data = self.__process_scraped_card(scraped_data)
 
