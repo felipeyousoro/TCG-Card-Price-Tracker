@@ -31,10 +31,11 @@ def scrap_collection(url: str = "") -> List[Dict[str, str]]:
                     cards_data = json.loads(json_str)
                     for card in cards_data:
                         result.append({
-                            'nEN': card.get('nEN', ''),
-                            'sN': card.get('sN', ''),
-                            'sSigla': card.get('sSigla', ''),
-                            'iR': card.get('iR', 0)
+                            'nome': card.get('nEN', ''),
+                            'codigo': card.get('sN', ''),
+                            'colecao': card.get('sSigla', ''),
+                            'raridade': card.get('iR', 0),
+                            'url_imagem': card.get('sP', '')
                         })
                     break
                 except json.JSONDecodeError:

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from api.main import api_router
 
-app = FastAPI()
+app = FastAPI(debug=True)
 
 
 @app.get("/")

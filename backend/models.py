@@ -99,11 +99,11 @@ class Collection(Base):
     game_id = Column(Integer, ForeignKey("game.id"), nullable=False)
     game = relationship("Game", back_populates="collections")
 
-    cards = relationship("Card", back_populates="collection")
+    cards = relationship("OnePieceCard", back_populates="collection")
 
 
-class Card(Base):
-    __tablename__ = "card"
+class OnePieceCard(Base):
+    __tablename__ = "onepiece_card"
 
     id = Column(Integer, primary_key=True)
     code = Column(String, nullable=False)
@@ -112,7 +112,7 @@ class Card(Base):
     collection_id = Column(Integer, ForeignKey("collection.id"), nullable=False)
     collection = relationship("Collection", back_populates="cards")
 
-    versions = relationship("CardVersion", back_populates="card")
+    versions = relationship("OnePieceCardVersion", back_populates="card")
 
 
 class Supplier(Base):
@@ -121,32 +121,33 @@ class Supplier(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
 
-    stocks = relationship("CardStock", back_populates="supplier")
+    stocks = relationship("OnePieceCardStock", back_populates="supplier")
 
 
-class CardVersion(Base):
-    __tablename__ = "card_version"
+class OnePieceCardVersion(Base):
+    __tablename__ = "onepiece_card_version"
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     code = Column(String, nullable=False)
+    collection_print = Column(String, nullable=False)
 
-    card_id = Column(Integer, ForeignKey("card.id"), nullable=False)
-    card = relationship("Card", back_populates="versions")
+    card_id = Column(Integer, ForeignKey("onepiece_card.id"), nullable=False)
+    card = relationship("OnePieceCard", back_populates="versions")
 
-    stocks = relationship("CardStock", back_populates="card_version")
+    stocks = relationship("OnePieceCardStock", back_populates="card_version")
 
 
-class CardStock(Base):
-    __tablename__ = "card_stock"
+class OnePieceCardStock(Base):
+    __tablename__ = "onepiece_card_stock"
 
     id = Column(Integer, primary_key=True)
 
     lowest_price = Column(DECIMAL, nullable=False)
     avg_price = Column(DECIMAL, nullable=False)
 
-    card_version_id = Column(Integer, ForeignKey("card_version.id"), nullable=False)
+    card_version_id = Column(Integer, ForeignKey("onepiece_card_version.id"), nullable=False)
     supplier_id = Column(Integer, ForeignKey("supplier.id"), nullable=False)
 
-    card_version = relationship("CardVersion", back_populates="stocks")
+    card_version = relationship("OnePieceCardVersion", back_populates="stocks")
     supplier = relationship("Supplier", back_populates="stocks")

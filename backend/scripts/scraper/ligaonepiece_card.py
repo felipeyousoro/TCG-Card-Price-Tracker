@@ -21,11 +21,35 @@ def scrap_card(url: str = "") -> List[Dict[str, str]]:
                     card = cards_data[0]
                     if 'price' in card:
                         prices = card['price']
-                        for key, price_info in prices.items():
-                            p = price_info.get('p', '')
-                            m = price_info.get('m', '')
-                            g = price_info.get('g', '')
-                            result.append({'p': p, 'm': m, 'g': g})
+                        print(prices)
+                        for price_info in normalize_prices(prices):
+                            result.append(price_info)
                 break
     return result
 
+def normalize_prices(prices):
+    normalized = []
+
+    if isinstance(prices, dict):
+        iterable = prices.values()
+    elif isinstance(prices, list):
+        iterable = prices
+    else:
+        return []
+
+    for item in iterable:
+        if isinstance(item, list):
+            if not item:
+                continue
+            item = item[0]
+
+        if not isinstance(item, dict):
+            continue
+
+        normalized.append({
+            'p': item.get('p'),
+            'm': item.get('m'),
+            'g': item.get('g')
+        })
+
+    return normalized
