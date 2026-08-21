@@ -8,6 +8,8 @@ from .core.app_factory import create_application, lifespan_factory
 from .core.config.settings import get_settings
 from .core.security import validate_production_security
 from .interfaces.api import router
+from .modules.importers.jobs.service import fail_stale_sync_jobs
+from .modules.user.bootstrap import ensure_admin_user
 # from .admin.initialize import create_admin_interface
 
 settings = get_settings()
@@ -22,6 +24,8 @@ async def lifespan_with_security(app: FastAPI) -> AsyncGenerator[None, None]:
     default_lifespan = lifespan_factory(settings)
 
     async with default_lifespan(app):
+        await fail_stale_sync_jobs()
+        await ensure_admin_user()
         yield
 
 

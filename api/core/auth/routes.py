@@ -2,6 +2,7 @@ import inspect
 from typing import Any
 
 from fastapi import APIRouter, Request, Response
+from pydantic import BaseModel, Field
 
 from .http_exceptions import UnauthorizedException
 from .session.dependencies import authenticate_user
@@ -18,6 +19,13 @@ settings = get_settings()
 # logger = get_logger()
 
 router = APIRouter(tags=["Authentication"])
+
+
+class LoginRequest(BaseModel):
+    """Username and password submitted by the admin shell."""
+
+    username: str = Field(min_length=1, max_length=20)
+    password: str = Field(min_length=1)
 
 
 @router.post(
@@ -45,7 +53,7 @@ router = APIRouter(tags=["Authentication"])
 async def login(
         request: Request,
         response: Response,
-        form_data: dict[str, str],
+        form_data: LoginRequest,
         db: AsyncSessionDep,
         session_manager: SessionManagerDep,
 ) -> dict[str, str]:

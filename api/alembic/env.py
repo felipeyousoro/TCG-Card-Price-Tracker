@@ -25,6 +25,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 from api.core.database.session import Base
+from api.modules.importers.jobs import models as _sync_job_models  # noqa: F401
 from api.modules.optcg import models as _optcg_models  # noqa: F401
 from api.modules.user import models as _user_models  # noqa: F401
 

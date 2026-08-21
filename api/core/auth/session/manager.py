@@ -86,6 +86,39 @@ class SessionManager:
         self.csrf_storage: AbstractSessionStorage[CSRFToken] = get_session_storage(
             backend=settings.SESSION_BACKEND, model_type=CSRFToken, **csrf_storage_settings
         )
+        self._login_attempts: dict[str, list[datetime]] = {}
+
+    async def track_login_attempt(
+        self,
+        ip_address: str,
+        username: str,
+        success: bool,
+    ) -> tuple[bool, int]:
+        """Track a login attempt and apply a simple in-memory rate limit.
+
+        Args:
+            ip_address: Client IP used as part of the rate-limit key.
+            username: Username used as part of the rate-limit key.
+            success: True when credentials were accepted; clears the window.
+
+        Returns:
+            Tuple of (is_allowed, attempts_remaining).
+        """
+        key = f"{ip_address}:{username.strip().lower()}"
+        now = datetime.now(UTC)
+
+        if success:
+            self._login_attempts.pop(key, None)
+            return True, self.login_max_attempts
+
+        recent = [stamp for stamp in self._login_attempts.get(key, []) if now - stamp < self.login_window]
+        if len(recent) >= self.login_max_attempts:
+            self._login_attempts[key] = recent
+            return False, 0
+
+        recent.append(now)
+        self._login_attempts[key] = recent
+        return True, self.login_max_attempts - len(recent)
 
     def parse_user_agent(self, user_agent_string: str) -> UserAgentInfo:
         """Parse User-Agent string into structured information.

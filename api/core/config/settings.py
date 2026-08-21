@@ -170,10 +170,10 @@ class AppSettings(BaseSettings):
 class AdminSettings(BaseSettings):
     """Admin user settings for initial setup."""
 
-    ADMIN_NAME: str = config("ADMIN_NAME", default="")
+    ADMIN_NAME: str = config("ADMIN_NAME", default="Admin")
     ADMIN_EMAIL: str = config("ADMIN_EMAIL", default="")
-    ADMIN_USERNAME: str = config("ADMIN_USERNAME", default="")
-    ADMIN_PASSWORD: str = config("ADMIN_PASSWORD", default="")
+    ADMIN_USERNAME: str = config("ADMIN_USERNAME", default="admin")
+    ADMIN_PASSWORD: str = config("ADMIN_PASSWORD", default="admin")
     DEFAULT_TIER_NAME: str = config("DEFAULT_TIER_NAME", default="free")
 
 

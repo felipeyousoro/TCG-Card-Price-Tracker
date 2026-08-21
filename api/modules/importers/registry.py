@@ -5,7 +5,20 @@ from .base import OptcgImporter
 from .optcgapi.client import OptcgApiClient
 from .optcgapi.importer import OptcgApiImporter
 
-_KNOWN_SOURCES = ("optcgapi",)
+_IMPORTER_CATALOG: tuple[dict[str, str], ...] = (
+    {
+        "source": "optcgapi",
+        "label": "optcgapi",
+        "description": "Import the full OPTCG card catalog from optcgapi.com.",
+    },
+)
+
+_KNOWN_SOURCES = tuple(item["source"] for item in _IMPORTER_CATALOG)
+
+
+def list_importer_catalog() -> tuple[dict[str, str], ...]:
+    """Return static metadata for every registered importer source."""
+    return _IMPORTER_CATALOG
 
 
 def get_importer(source: str) -> OptcgImporter:
