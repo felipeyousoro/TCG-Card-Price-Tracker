@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import Date, Integer, String, Text
+from sqlalchemy import Date, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ...core.database.models import TimestampMixin
@@ -11,6 +11,9 @@ class OptcgCard(Base, TimestampMixin):
     """One Piece TCG card scraped from an official or third-party source."""
 
     __tablename__ = "optcg_card"
+    __table_args__ = (
+        UniqueConstraint("card_name", "set_id", name="uq_optcg_card_name_set_id"),
+    )
 
     id: Mapped[int] = mapped_column(
         autoincrement=True,

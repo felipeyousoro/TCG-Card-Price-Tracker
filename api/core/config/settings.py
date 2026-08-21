@@ -191,6 +191,13 @@ class SecuritySettings(BaseSettings):
     SECURITY_HEADERS_ENABLED: bool = config("SECURITY_HEADERS_ENABLED", default=True, cast=bool)
 
 
+class OptcgApiSettings(BaseSettings):
+    """Settings for the optcgapi.com catalog importer."""
+
+    OPTCGAPI_BASE_URL: str = config("OPTCGAPI_BASE_URL", default="https://www.optcgapi.com")
+    OPTCGAPI_TIMEOUT_SECONDS: float = config("OPTCGAPI_TIMEOUT_SECONDS", default=120, cast=float)
+
+
 class LoggingSettings(BaseSettings):
     """Centralized logging configuration settings."""
 
@@ -238,6 +245,7 @@ class Settings(
     SQLAdminSettings,
     SecuritySettings,
     LoggingSettings,
+    OptcgApiSettings,
 ):
     """Main settings class that combines all setting categories."""
 

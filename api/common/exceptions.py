@@ -65,3 +65,9 @@ class UsageLimitExceededError(DomainError):
     """Raised when a user exceeds their usage limits."""
 
     pass
+
+
+class ImporterFetchError(DomainError):
+    """Raised when an external importer source cannot be fetched."""
+
+    pass

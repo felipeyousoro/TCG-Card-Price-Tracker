@@ -11,6 +11,7 @@ from ..core.auth.http_exceptions import (
 )
 from .exceptions import (
     DomainError,
+    ImporterFetchError,
     InsufficientCreditsError,
     PermissionDeniedError,
     RateLimitNotFoundError,
@@ -42,4 +43,8 @@ EXCEPTION_MAPPING: dict[type[DomainError], Callable[[str], HTTPException]] = {
     ),
     TierNotFoundError: lambda message: NotFoundException(detail="The requested tier was not found."),
     RateLimitNotFoundError: lambda message: NotFoundException(detail="Rate limit configuration not found."),
+    ImporterFetchError: lambda message: HTTPException(
+        status_code=502,
+        detail="Failed to fetch data from the import source.",
+    ),
 }
