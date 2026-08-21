@@ -1,0 +1,12 @@
+- import prices from TCG player
+- import prices from liga one piece 
+- allow to insert user's stock per card 
+- insert product (boxes/packs/sts)
+- favorites
+- cards watching prices 
+- card spike history
+
+- allow user to insert buy history
+(buy date, cards bought, price per card)
+- make input format for mass insertion of buy history
+- sales / buy dashboard
