@@ -1,6 +1,26 @@
-from datetime import date
+from datetime import date, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+_DATE_FORMATS = ("%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y")
+
+
+def _parse_optcg_date(value: object) -> object:
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    if not text:
+        return value
+    for fmt in _DATE_FORMATS:
+        try:
+            return datetime.strptime(text, fmt).date()
+        except ValueError:
+            continue
+    return value
 
 
 class OptcgApiCard(BaseModel):
@@ -27,3 +47,8 @@ class OptcgApiCard(BaseModel):
     card_image: str | None = None
     inventory_price: float | None = Field(default=None)
     market_price: float | None = Field(default=None)
+
+    @field_validator("date_scraped", mode="before")
+    @classmethod
+    def parse_date_scraped(cls, value: object) -> object:
+        return _parse_optcg_date(value)

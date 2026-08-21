@@ -1,3 +1,4 @@
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -13,6 +14,7 @@ from .modules.user.bootstrap import ensure_admin_user
 # from .admin.initialize import create_admin_interface
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -24,7 +26,10 @@ async def lifespan_with_security(app: FastAPI) -> AsyncGenerator[None, None]:
     default_lifespan = lifespan_factory(settings)
 
     async with default_lifespan(app):
-        await fail_stale_sync_jobs()
+        try:
+            await fail_stale_sync_jobs()
+        except Exception:
+            logger.exception("Could not fail stale sync jobs; continuing startup")
         await ensure_admin_user()
         yield
 

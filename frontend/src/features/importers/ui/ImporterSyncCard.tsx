@@ -1,5 +1,6 @@
 import StatusBanner from '../../../shared/ui/StatusBanner'
 import type { ImporterRun } from '../model/types'
+import ImporterJobLog from './ImporterJobLog'
 import ImportResultPanel from './ImportResultPanel'
 
 export default function ImporterSyncCard({
@@ -44,6 +45,7 @@ export default function ImporterSyncCard({
         ) : null}
         {startError ? <StatusBanner tone="error">{startError}</StatusBanner> : null}
         {run.result ? <ImportResultPanel result={run.result} /> : null}
+        <ImporterJobLog logs={run.logs} />
       </div>
     </article>
   )

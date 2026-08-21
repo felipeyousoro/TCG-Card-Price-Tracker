@@ -2,9 +2,10 @@
 
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ....core.database.models import TimestampMixin
@@ -39,5 +40,10 @@ class SyncJob(Base, TimestampMixin):
     inserted: Mapped[int | None] = mapped_column(Integer, default=None)
     skipped: Mapped[int | None] = mapped_column(Integer, default=None)
     error: Mapped[str | None] = mapped_column(Text, default=None)
+    logs: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB,
+        default_factory=list,
+        server_default=text("'[]'::jsonb"),
+    )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

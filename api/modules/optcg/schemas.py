@@ -61,3 +61,22 @@ class OptcgCardRead(OptcgCardBase):
     id: int
     created_at: datetime
     updated_at: datetime | None = Field(default=None)
+
+
+class OptcgCardListItem(BaseModel):
+    """Slim catalog row for the cards grid."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    card_name: str
+    card_set_id: str
+    card_image: str | None = None
+
+
+class OptcgCardFilterOptions(BaseModel):
+    """Distinct values for catalog list filters."""
+
+    colors: list[str]
+    rarities: list[str]
+    set_names: list[str]

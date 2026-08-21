@@ -20,6 +20,9 @@ export default function AppShell() {
             <NavLink to="/" end className={linkClass}>
               Home
             </NavLink>
+            <NavLink to="/cards" className={linkClass}>
+              Cards
+            </NavLink>
             <NavLink to="/settings" className={linkClass}>
               Settings
             </NavLink>

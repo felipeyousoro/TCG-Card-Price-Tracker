@@ -20,6 +20,7 @@ export function useStartSyncMutation(source: string) {
         inserted: null,
         skipped: null,
         error: null,
+        logs: [],
         created_at: new Date().toISOString(),
         started_at: null,
         finished_at: null,

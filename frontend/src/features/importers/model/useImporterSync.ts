@@ -43,7 +43,7 @@ export function useImporterSync(importer: ImporterInfo) {
   return {
     run,
     isStarting: startMutation.isPending,
-    startError: startMutation.error,
+    startError: startMutation.error ?? (jobQuery.isError && !jobQuery.data ? jobQuery.error : undefined),
     sync: () => startMutation.mutate(),
   }
 }

@@ -5,7 +5,15 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from .enums import SyncJobStatus
+from .enums import SyncJobLogLevel, SyncJobStatus
+
+
+class SyncJobLogEntry(BaseModel):
+    """A single progress or error line from a sync job."""
+
+    at: datetime
+    level: SyncJobLogLevel
+    message: str
 
 
 class SyncJobRead(BaseModel):
@@ -20,6 +28,7 @@ class SyncJobRead(BaseModel):
     inserted: int | None = None
     skipped: int | None = None
     error: str | None = None
+    logs: list[SyncJobLogEntry] = Field(default_factory=list)
     created_at: datetime
     started_at: datetime | None = None
     finished_at: datetime | None = None

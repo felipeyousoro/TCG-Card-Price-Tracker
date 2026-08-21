@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 
 import RequireAuth from '../features/auth/RequireAuth'
 import LoginPage from '../features/auth/pages/LoginPage'
+import CardGamesPage from '../features/cards/pages/CardGamesPage'
+import OptcgCardsPage from '../features/cards/pages/OptcgCardsPage'
 import HomePage from '../features/home/pages/HomePage'
 import ImportersPage from '../features/importers/pages/ImportersPage'
 import SettingsPage from '../features/settings/pages/SettingsPage'
@@ -18,6 +20,8 @@ export default function AppRouter() {
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/cards" element={<CardGamesPage />} />
+            <Route path="/cards/optcg" element={<OptcgCardsPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/importers" element={<ImportersPage />} />
           </Route>

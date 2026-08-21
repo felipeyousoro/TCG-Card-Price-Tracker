@@ -1,3 +1,5 @@
+import asyncio
+
 import httpx
 
 from ....common.exceptions import ImporterFetchError, ValidationError
@@ -19,7 +21,7 @@ class OptcgApiClient:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
                 response = await client.get(url)
                 response.raise_for_status()
-                data = response.json()
+                data = await asyncio.to_thread(response.json)
         except httpx.HTTPError as exc:
             raise ImporterFetchError("Failed to fetch all set cards from optcgapi") from exc
 

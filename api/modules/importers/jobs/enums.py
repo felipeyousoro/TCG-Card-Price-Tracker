@@ -12,5 +12,13 @@ class SyncJobStatus(StrEnum):
     FAILED = "failed"
 
 
+class SyncJobLogLevel(StrEnum):
+    """Severity of a persisted sync job log line."""
+
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+
+
 ACTIVE_SYNC_STATUSES: tuple[str, ...] = (SyncJobStatus.QUEUED.value, SyncJobStatus.RUNNING.value)
 TERMINAL_SYNC_STATUSES: tuple[str, ...] = (SyncJobStatus.SUCCEEDED.value, SyncJobStatus.FAILED.value)

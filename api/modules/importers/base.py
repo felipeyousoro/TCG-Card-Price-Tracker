@@ -1,7 +1,10 @@
+from collections.abc import Awaitable, Callable
 from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
+
+ProgressCallback = Callable[[str], Awaitable[None]]
 
 
 class ImportResult(BaseModel):
@@ -20,6 +23,11 @@ class OptcgImporter(Protocol):
 
     source: str
 
-    async def import_all_sets(self, db: AsyncSession) -> ImportResult:
+    async def import_all_sets(
+        self,
+        db: AsyncSession,
+        *,
+        on_progress: ProgressCallback | None = None,
+    ) -> ImportResult:
         """Fetch cards from the source and insert missing catalog rows."""
         ...

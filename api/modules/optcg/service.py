@@ -1,8 +1,13 @@
+from typing import Any
+
+from fastcrud.types import GetMultiResponseDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import InstrumentedAttribute
 
+from .crud import crud_optcg_cards
 from .models import OptcgCard
-from .schemas import OptcgCardCreate
+from .schemas import OptcgCardCreate, OptcgCardFilterOptions, OptcgCardListItem
 
 INSERT_BATCH_SIZE = 500
 
@@ -50,3 +55,44 @@ class OptcgCatalogService:
 
         await db.commit()
         return len(to_insert), skipped
+
+    async def list_paginated(
+        self,
+        db: AsyncSession,
+        skip: int,
+        limit: int,
+        color: str | None = None,
+        rarity: str | None = None,
+        set_name: str | None = None,
+    ) -> GetMultiResponseDict:
+        """Return a page of catalog cards, optionally filtered."""
+        filters: dict[str, str] = {}
+        if color:
+            filters["card_color"] = color
+        if rarity:
+            filters["rarity"] = rarity
+        if set_name:
+            filters["set_name"] = set_name
+
+        return await crud_optcg_cards.get_multi(
+            db=db,
+            offset=skip,
+            limit=limit,
+            schema_to_select=OptcgCardListItem,
+            sort_columns=["set_id", "card_set_id"],
+            sort_orders=["asc", "asc"],
+            **filters,
+        )
+
+    async def list_filter_options(self, db: AsyncSession) -> OptcgCardFilterOptions:
+        """Return distinct color, rarity, and set name values for filters."""
+        return OptcgCardFilterOptions(
+            colors=await _distinct_values(db, OptcgCard.card_color),
+            rarities=await _distinct_values(db, OptcgCard.rarity),
+            set_names=await _distinct_values(db, OptcgCard.set_name),
+        )
+
+
+async def _distinct_values(db: AsyncSession, column: InstrumentedAttribute[Any]) -> list[str]:
+    result = await db.execute(select(column).where(column.is_not(None)).distinct().order_by(column))
+    return [value for value in result.scalars().all() if value]

@@ -1,5 +1,13 @@
 export type SyncJobStatus = 'queued' | 'running' | 'succeeded' | 'failed'
 
+export type SyncJobLogLevel = 'info' | 'warning' | 'error'
+
+export type SyncJobLogEntry = {
+  at: string
+  level: SyncJobLogLevel
+  message: string
+}
+
 export type SyncJob = {
   id: string
   source: string
@@ -8,6 +16,7 @@ export type SyncJob = {
   inserted: number | null
   skipped: number | null
   error: string | null
+  logs: SyncJobLogEntry[]
   created_at: string
   started_at: string | null
   finished_at: string | null
@@ -36,6 +45,7 @@ export type ImporterRun = {
   status: 'idle' | 'syncing' | 'succeeded' | 'failed'
   result?: ImportResultCounts
   error?: string
+  logs: SyncJobLogEntry[]
 }
 
 export function isActiveJobStatus(status: SyncJobStatus) {
@@ -44,7 +54,7 @@ export function isActiveJobStatus(status: SyncJobStatus) {
 
 export function jobToRun(source: string, job: SyncJob | null | undefined): ImporterRun {
   if (!job) {
-    return { source, status: 'idle' }
+    return { source, status: 'idle', logs: [] }
   }
 
   const status: ImporterRun['status'] = isActiveJobStatus(job.status)
@@ -66,5 +76,6 @@ export function jobToRun(source: string, job: SyncJob | null | undefined): Impor
     status,
     result,
     error: job.error ?? undefined,
+    logs: job.logs ?? [],
   }
 }

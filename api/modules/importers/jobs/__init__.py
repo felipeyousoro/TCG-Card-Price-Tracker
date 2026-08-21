@@ -1,7 +1,14 @@
 """Catalog sync jobs."""
 
-from .enums import SyncJobStatus
+from .enums import SyncJobLogLevel, SyncJobStatus
 from .models import SyncJob
-from .schemas import StartSyncResponse, SyncJobRead
+from .schemas import StartSyncResponse, SyncJobLogEntry, SyncJobRead
 
-__all__ = ["StartSyncResponse", "SyncJob", "SyncJobRead", "SyncJobStatus"]
+__all__ = [
+    "StartSyncResponse",
+    "SyncJob",
+    "SyncJobLogEntry",
+    "SyncJobLogLevel",
+    "SyncJobRead",
+    "SyncJobStatus",
+]
