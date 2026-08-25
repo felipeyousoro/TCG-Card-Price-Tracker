@@ -7,6 +7,7 @@ export async function listOptcgCards(params: OptcgCardListParams) {
     params: {
       page: params.page,
       items_per_page: OPTCG_PAGE_SIZE,
+      name: params.name || undefined,
       color: params.color || undefined,
       rarity: params.rarity || undefined,
       set_name: params.set_name || undefined,

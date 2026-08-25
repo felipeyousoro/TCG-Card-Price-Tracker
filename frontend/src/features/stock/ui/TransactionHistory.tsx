@@ -27,7 +27,9 @@ export default function TransactionHistory({
               <p className="text-sm font-medium text-slate-100">
                 {transaction.transaction_date} · {transaction.transaction_type}
               </p>
-              {transaction.notes ? <p className="mt-1 text-sm text-slate-400">{transaction.notes}</p> : null}
+              {transaction.shipping_cost > 0 ? (
+                <p className="mt-1 text-sm text-slate-400">Shipping {formatMoney(transaction.shipping_cost)}</p>
+              ) : null}
             </div>
             <div className="text-right">
               <p className="text-sm text-slate-200">{formatMoney(transaction.total)}</p>
@@ -48,7 +50,6 @@ export default function TransactionHistory({
               <li key={line.id} className="flex justify-between gap-3">
                 <span>
                   {line.quantity}× {line.name}
-                  {line.notes ? <span className="text-slate-500"> · {line.notes}</span> : null}
                 </span>
                 <span className="text-slate-400">{formatMoney(line.line_total)}</span>
               </li>

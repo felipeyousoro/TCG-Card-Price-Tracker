@@ -19,7 +19,7 @@ export default function ImportBuyHistoryForm() {
     importMutation.mutate(
       {
         transaction_date: String(form.get('transaction_date')),
-        notes: String(form.get('notes') ?? '').trim() || null,
+        shipping_cost: Number(form.get('shipping_cost') || 0),
         text: String(form.get('text') ?? ''),
       },
       { onSuccess: setResult },
@@ -29,11 +29,14 @@ export default function ImportBuyHistoryForm() {
   return (
     <div className="space-y-6">
       <div className="rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-3 text-sm text-slate-400">
-        <p>One paste is one order. Put each line item on its own row and split fields with semicolons:</p>
-        <pre className="mt-3 overflow-x-auto text-xs text-slate-300">{`card_set_id;product_name;quantity;unit_price;notes
-OP01-001;;3;4.50;
-;One Piece OP-10 Booster Box;1;95.00;opened`}</pre>
-        <p className="mt-3">Fill exactly one of card_set_id or product_name. Blank lines are ignored.</p>
+        <p>One paste is one order of catalog cards. Split fields with semicolons:</p>
+        <pre className="mt-3 overflow-x-auto text-xs text-slate-300">{`card_set_id;variant;quantity;unit_price
+OP01-001;;3;4.50
+OP16-003;SEC;1;12.00`}</pre>
+        <p className="mt-3">
+          card_set_id is required. Leave variant empty unless several printings share that number, then use name or
+          rarity (for example SEC). Products are not imported here.
+        </p>
       </div>
       <form className="space-y-3" onSubmit={handleSubmit}>
         <label className="block text-sm">
@@ -41,8 +44,8 @@ OP01-001;;3;4.50;
           <input name="transaction_date" type="date" required defaultValue={todayISODate()} className={fieldClass} />
         </label>
         <label className="block text-sm">
-          <span className="mb-1.5 block text-slate-400">Order notes (optional)</span>
-          <input name="notes" className={fieldClass} placeholder="Local game store" />
+          <span className="mb-1.5 block text-slate-400">Total shipping</span>
+          <input name="shipping_cost" type="number" min={0} step="0.01" defaultValue="0.00" className={fieldClass} />
         </label>
         <label className="block text-sm">
           <span className="mb-1.5 block text-slate-400">Line items</span>

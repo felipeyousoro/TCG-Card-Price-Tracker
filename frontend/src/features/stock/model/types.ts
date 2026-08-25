@@ -18,15 +18,16 @@ export type StockLine = {
   name: string
   quantity: number
   unit_price: number
+  shipping_per_unit: number
+  effective_unit_cost: number
   line_total: number
-  notes: string | null
 }
 
 export type StockTransaction = {
   id: string
   transaction_type: 'buy' | 'sell'
   transaction_date: string
-  notes: string | null
+  shipping_cost: number
   created_at: string
   lines: StockLine[]
   total: number
@@ -40,14 +41,13 @@ export type StockQuantities = {
 export type BuyPayload = {
   quantity: number
   unit_price: number
-  notes?: string | null
   transaction_date: string
-  transaction_notes?: string | null
+  shipping_cost?: number
 }
 
 export type BuyImportRequest = {
   transaction_date: string
-  notes?: string | null
+  shipping_cost?: number
   text: string
 }
 

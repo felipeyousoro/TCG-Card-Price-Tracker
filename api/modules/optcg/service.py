@@ -102,9 +102,10 @@ class OptcgCatalogService:
         color: str | None = None,
         rarity: str | None = None,
         set_name: str | None = None,
+        name: str | None = None,
     ) -> GetMultiResponseDict:
         """Return a page of OPTCG catalog cards, optionally filtered."""
-        filters = _optcg_filters(color=color, rarity=rarity, set_name=set_name)
+        filters = _optcg_filters(color=color, rarity=rarity, set_name=set_name, name=name)
 
         count_stmt = select(func.count()).select_from(Card).join(OptcgCard).where(*filters)
         total = int((await db.execute(count_stmt)).scalar_one())
@@ -114,6 +115,7 @@ class OptcgCatalogService:
                 Card.id,
                 Card.name,
                 Card.card_number,
+                Card.rarity,
                 Card.image_url,
             )
             .join(OptcgCard)
@@ -129,6 +131,7 @@ class OptcgCatalogService:
                     "id": row.id,
                     "card_name": row.name,
                     "card_set_id": row.card_number,
+                    "rarity": row.rarity,
                     "card_image": row.image_url,
                 }
                 for row in rows
@@ -145,10 +148,16 @@ class OptcgCatalogService:
         )
 
 
+def _ilike_contains(value: str) -> str:
+    escaped = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
 def _optcg_filters(
     color: str | None = None,
     rarity: str | None = None,
     set_name: str | None = None,
+    name: str | None = None,
 ) -> list[ColumnElement[bool]]:
     filters: list[ColumnElement[bool]] = [Card.game == CardGame.OPTCG.value]
     if color:
@@ -157,6 +166,8 @@ def _optcg_filters(
         filters.append(Card.rarity == rarity)
     if set_name:
         filters.append(Card.set_name == set_name)
+    if name:
+        filters.append(Card.name.ilike(_ilike_contains(name), escape="\\"))
     return filters
 
 

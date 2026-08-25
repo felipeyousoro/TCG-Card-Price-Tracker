@@ -16,7 +16,6 @@ class BuyLineIn(BaseModel):
     product_id: int | None = None
     quantity: int = Field(ge=1)
     unit_price: Decimal = Field(ge=0)
-    notes: str | None = None
 
     @model_validator(mode="after")
     def exactly_one_item(self) -> "BuyLineIn":
@@ -32,9 +31,8 @@ class BuyCardRequest(BaseModel):
 
     quantity: int = Field(ge=1)
     unit_price: Decimal = Field(ge=0)
-    notes: str | None = None
     transaction_date: date
-    transaction_notes: str | None = None
+    shipping_cost: Decimal = Field(default=Decimal("0"), ge=0)
 
 
 class BuyProductRequest(BaseModel):
@@ -44,9 +42,8 @@ class BuyProductRequest(BaseModel):
 
     quantity: int = Field(ge=1)
     unit_price: Decimal = Field(ge=0)
-    notes: str | None = None
     transaction_date: date
-    transaction_notes: str | None = None
+    shipping_cost: Decimal = Field(default=Decimal("0"), ge=0)
 
 
 class TransactionCreate(BaseModel):
@@ -55,17 +52,17 @@ class TransactionCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     transaction_date: date
-    notes: str | None = None
+    shipping_cost: Decimal = Field(default=Decimal("0"), ge=0)
     lines: list[BuyLineIn] = Field(min_length=1)
 
 
 class BuyImportRequest(BaseModel):
-    """Paste import: one payload is one order."""
+    """Paste import: one payload is one order of catalog cards."""
 
     model_config = ConfigDict(extra="forbid")
 
     transaction_date: date
-    notes: str | None = None
+    shipping_cost: Decimal = Field(default=Decimal("0"), ge=0)
     text: str = Field(min_length=1)
 
 
@@ -91,8 +88,9 @@ class StockLineRead(BaseModel):
     name: str
     quantity: int
     unit_price: float
+    shipping_per_unit: float
+    effective_unit_cost: float
     line_total: float
-    notes: str | None = None
 
 
 class TransactionRead(BaseModel):
@@ -101,7 +99,7 @@ class TransactionRead(BaseModel):
     id: UUID
     transaction_type: TransactionType
     transaction_date: date
-    notes: str | None = None
+    shipping_cost: float
     created_at: datetime
     lines: list[StockLineRead]
     total: float

@@ -29,12 +29,12 @@ export default function BuyDialog({
     const quantity = Number(form.get('quantity'))
     const unitPrice = Number(form.get('unit_price'))
     const transactionDate = String(form.get('transaction_date'))
-    const notes = String(form.get('notes') ?? '').trim() || null
+    const shippingCost = Number(form.get('shipping_cost') || 0)
     const payload = {
       quantity,
       unit_price: unitPrice,
-      notes,
       transaction_date: transactionDate,
+      shipping_cost: shippingCost,
     }
 
     const onSuccess = () => onClose()
@@ -73,8 +73,8 @@ export default function BuyDialog({
             <input name="unit_price" type="number" min={0} step="0.01" required defaultValue="0.00" className={fieldClass} />
           </label>
           <label className="block text-sm">
-            <span className="mb-1.5 block text-slate-400">Line notes (optional)</span>
-            <input name="notes" className={fieldClass} />
+            <span className="mb-1.5 block text-slate-400">Total shipping</span>
+            <input name="shipping_cost" type="number" min={0} step="0.01" defaultValue="0.00" className={fieldClass} />
           </label>
           {error ? <p className="text-sm text-red-300">{error}</p> : null}
           <button

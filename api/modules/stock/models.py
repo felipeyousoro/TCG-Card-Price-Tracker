@@ -2,7 +2,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, text
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Integer, Numeric, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -30,7 +30,7 @@ class InventoryTransaction(Base, TimestampMixin):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), index=True)
     transaction_type: Mapped[str] = mapped_column(String(20), index=True)
     transaction_date: Mapped[date] = mapped_column(Date, index=True)
-    notes: Mapped[str | None] = mapped_column(Text, default=None)
+    shipping_cost: Mapped[Decimal] = mapped_column(Numeric(12, 2), default=Decimal("0.00"))
 
     lines: Mapped[list["StockTransaction"]] = relationship(
         back_populates="transaction",
@@ -63,6 +63,8 @@ class StockTransaction(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), index=True)
     quantity: Mapped[int] = mapped_column(Integer)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    shipping_per_unit: Mapped[Decimal] = mapped_column(Numeric(12, 4))
+    effective_unit_cost: Mapped[Decimal] = mapped_column(Numeric(12, 4))
     line_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     card_id: Mapped[int | None] = mapped_column(
         Integer,
@@ -76,7 +78,6 @@ class StockTransaction(Base):
         default=None,
         index=True,
     )
-    notes: Mapped[str | None] = mapped_column(Text, default=None)
 
     transaction: Mapped[InventoryTransaction] = relationship(back_populates="lines", init=False)
 

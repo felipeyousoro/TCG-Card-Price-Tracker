@@ -32,7 +32,7 @@ async def get_card_filters(
     "/cards",
     response_model=PaginatedListResponse[OptcgCardListItem],
     summary="List OPTCG cards",
-    description="Returns a paginated catalog page. Filter by exact color, rarity, or set name.",
+    description="Returns a paginated catalog page. Filter by name, color, rarity, or set name.",
     responses={401: {"description": "Not authenticated"}},
 )
 async def list_cards(
@@ -41,6 +41,7 @@ async def list_cards(
     catalog: OptcgCatalogServiceDep,
     page: int = Query(default=1, ge=1),
     items_per_page: int = Query(default=50, ge=1, le=100),
+    name: str | None = Query(default=None),
     color: str | None = Query(default=None),
     rarity: str | None = Query(default=None),
     set_name: str | None = Query(default=None),
@@ -50,6 +51,7 @@ async def list_cards(
         db=db,
         skip=compute_offset(page, items_per_page),
         limit=items_per_page,
+        name=name.strip() if name else None,
         color=color.strip() if color else None,
         rarity=rarity.strip() if rarity else None,
         set_name=set_name.strip() if set_name else None,

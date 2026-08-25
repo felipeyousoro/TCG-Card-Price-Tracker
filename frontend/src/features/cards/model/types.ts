@@ -2,6 +2,7 @@ export type OptcgCardListItem = {
   id: number
   card_name: string
   card_set_id: string
+  rarity: string
   card_image: string | null
 }
 
@@ -21,6 +22,7 @@ export type OptcgCardFilterOptions = {
 
 export type OptcgCardListParams = {
   page: number
+  name: string
   color: string
   rarity: string
   set_name: string

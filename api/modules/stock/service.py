@@ -2,15 +2,13 @@ from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from uuid import UUID
 
-from sqlalchemy import Integer, cast, func, literal, null, select, union_all
+from sqlalchemy import Integer, cast, func, literal, null, or_, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ...core.auth.http_exceptions import BadRequestException, NotFoundException
 from ..cards.models import Card
-from ..products.enums import ProductCategory
 from ..products.models import Product
-from ..products.schemas import ProductCreate
 from ..products.service import ProductCatalogService
 from .enums import ItemType, TransactionType
 from .models import InventoryTransaction, StockTransaction, UserCardStock, UserProductStock
@@ -29,6 +27,7 @@ from .schemas import (
 )
 
 TWOPLACES = Decimal("0.01")
+FOURPLACES = Decimal("0.0001")
 
 
 class StockService:
@@ -49,13 +48,12 @@ class StockService:
             db,
             user_id=user_id,
             transaction_date=payload.transaction_date,
-            notes=payload.transaction_notes,
+            shipping_cost=payload.shipping_cost,
             lines=[
                 BuyLineIn(
                     card_id=card_id,
                     quantity=payload.quantity,
                     unit_price=payload.unit_price,
-                    notes=payload.notes,
                 )
             ],
         )
@@ -72,13 +70,12 @@ class StockService:
             db,
             user_id=user_id,
             transaction_date=payload.transaction_date,
-            notes=payload.transaction_notes,
+            shipping_cost=payload.shipping_cost,
             lines=[
                 BuyLineIn(
                     product_id=product_id,
                     quantity=payload.quantity,
                     unit_price=payload.unit_price,
-                    notes=payload.notes,
                 )
             ],
         )
@@ -98,7 +95,7 @@ class StockService:
             db,
             user_id=user_id,
             transaction_date=payload.transaction_date,
-            notes=payload.notes,
+            shipping_cost=payload.shipping_cost,
             lines=payload.lines,
         )
 
@@ -108,23 +105,50 @@ class StockService:
         user_id: int,
         transaction_date,
         lines: list[BuyLineIn],
-        notes: str | None = None,
+        shipping_cost: Decimal = Decimal("0"),
     ) -> TransactionRead:
         if not lines:
             raise BadRequestException(detail="At least one line is required")
+
+        shipping_cost = Decimal(shipping_cost).quantize(TWOPLACES)
+        total_qty = sum(int(line.quantity) for line in lines)
+        shipping_per_unit = (
+            (shipping_cost / Decimal(total_qty)).quantize(FOURPLACES) if total_qty else Decimal("0")
+        )
 
         header = InventoryTransaction(
             user_id=user_id,
             transaction_type=TransactionType.BUY.value,
             transaction_date=transaction_date,
-            notes=notes,
+            shipping_cost=shipping_cost,
         )
         db.add(header)
         await db.flush()
 
+        prepared: list[tuple[BuyLineIn, int, Decimal, Decimal, Decimal]] = []
+        merchandise = Decimal("0")
         for line in lines:
             qty = int(line.quantity)
             unit_price = Decimal(line.unit_price).quantize(TWOPLACES)
+            effective = (unit_price + shipping_per_unit).quantize(FOURPLACES)
+            line_total = (effective * Decimal(qty)).quantize(TWOPLACES)
+            merchandise += unit_price * Decimal(qty)
+            prepared.append((line, qty, unit_price, effective, line_total))
+
+        expected = (merchandise + shipping_cost).quantize(TWOPLACES)
+        actual = sum(item[4] for item in prepared)
+        leftover = expected - actual
+        if leftover and prepared:
+            last_line, last_qty, last_unit, last_effective, last_total = prepared[-1]
+            prepared[-1] = (
+                last_line,
+                last_qty,
+                last_unit,
+                last_effective,
+                (last_total + leftover).quantize(TWOPLACES),
+            )
+
+        for line, qty, unit_price, effective, line_total in prepared:
             stock_line = StockTransaction(
                 transaction_id=header.id,
                 user_id=user_id,
@@ -132,14 +156,15 @@ class StockService:
                 product_id=line.product_id,
                 quantity=qty,
                 unit_price=unit_price,
-                line_total=(Decimal(qty) * unit_price).quantize(TWOPLACES),
-                notes=line.notes,
+                shipping_per_unit=shipping_per_unit,
+                effective_unit_cost=effective,
+                line_total=line_total,
             )
             db.add(stock_line)
             if line.card_id is not None:
-                await _apply_card_buy(db, user_id, line.card_id, qty, unit_price)
+                await _apply_card_buy(db, user_id, line.card_id, qty, effective)
             else:
-                await _apply_product_buy(db, user_id, line.product_id, qty, unit_price)  # type: ignore[arg-type]
+                await _apply_product_buy(db, user_id, line.product_id, qty, effective)  # type: ignore[arg-type]
 
         await db.commit()
         return await self.get_transaction(db, user_id, header.id)
@@ -190,9 +215,13 @@ class StockService:
 
         for line in header.lines:
             if line.card_id is not None:
-                await _reverse_card_buy(db, user_id, line.card_id, line.quantity, line.unit_price)
+                await _reverse_card_buy(
+                    db, user_id, line.card_id, line.quantity, line.effective_unit_cost
+                )
             elif line.product_id is not None:
-                await _reverse_product_buy(db, user_id, line.product_id, line.quantity, line.unit_price)
+                await _reverse_product_buy(
+                    db, user_id, line.product_id, line.quantity, line.effective_unit_cost
+                )
 
         await db.delete(header)
         await db.commit()
@@ -278,7 +307,7 @@ class StockService:
         user_id: int,
         payload: BuyImportRequest,
     ) -> BuyImportResult:
-        parsed, errors = await self._parse_import_lines(db, user_id, payload.text)
+        parsed, errors = await self._parse_import_lines(db, payload.text)
         fetched = parsed.fetched
         skipped = len(errors)
         if not parsed.lines:
@@ -294,7 +323,7 @@ class StockService:
             db,
             user_id=user_id,
             transaction_date=payload.transaction_date,
-            notes=payload.notes,
+            shipping_cost=payload.shipping_cost,
             lines=parsed.lines,
         )
         return BuyImportResult(
@@ -308,7 +337,6 @@ class StockService:
     async def _parse_import_lines(
         self,
         db: AsyncSession,
-        user_id: int,
         text: str,
     ) -> tuple["_ParsedImport", list[ImportLineError]]:
         lines: list[BuyLineIn] = []
@@ -320,28 +348,21 @@ class StockService:
             if not row:
                 continue
             parts = [part.strip() for part in row.split(";")]
-            if len(parts) >= 2 and parts[0].lower() == "card_set_id" and parts[1].lower() == "product_name":
+            if len(parts) >= 2 and parts[0].lower() == "card_set_id" and parts[1].lower() == "variant":
                 continue
             fetched += 1
             if len(parts) < 4:
                 errors.append(
                     ImportLineError(
                         line=index,
-                        message="Expected card_set_id;product_name;quantity;unit_price;notes",
+                        message="Expected card_set_id;variant;quantity;unit_price",
                     )
                 )
                 continue
 
-            card_set_id, product_name, qty_raw, price_raw = parts[0], parts[1], parts[2], parts[3]
-            notes = ";".join(parts[4:]).strip() or None if len(parts) > 4 else None
-
-            if bool(card_set_id) == bool(product_name):
-                errors.append(
-                    ImportLineError(
-                        line=index,
-                        message="Set exactly one of card_set_id or product_name",
-                    )
-                )
+            card_set_id, variant, qty_raw, price_raw = parts[0], parts[1], parts[2], parts[3]
+            if not card_set_id:
+                errors.append(ImportLineError(line=index, message="card_set_id is required"))
                 continue
 
             try:
@@ -360,71 +381,52 @@ class StockService:
                 errors.append(ImportLineError(line=index, message="Unit price must be a non-negative number"))
                 continue
 
-            if card_set_id:
-                matches = list(
-                    (await db.execute(select(Card).where(Card.card_number == card_set_id))).scalars().all()
-                )
-                if len(matches) != 1:
-                    errors.append(
-                        ImportLineError(
-                            line=index,
-                            message=(
-                                f"No card matches card_set_id {card_set_id!r}"
-                                if not matches
-                                else f"Multiple cards match card_set_id {card_set_id!r}"
-                            ),
-                        )
+            stmt = select(Card).where(func.lower(Card.card_number) == card_set_id.lower())
+            if variant:
+                pattern = _ilike_contains(variant)
+                stmt = stmt.where(
+                    or_(
+                        Card.name.ilike(pattern, escape="\\"),
+                        Card.rarity.ilike(pattern, escape="\\"),
                     )
-                    continue
+                )
+            matches = list((await db.execute(stmt)).scalars().all())
+            if len(matches) == 1:
                 lines.append(
                     BuyLineIn(
                         card_id=matches[0].id,
                         quantity=quantity,
                         unit_price=unit_price,
-                        notes=notes,
                     )
                 )
                 continue
-
-            matches = await self.products.find_by_name_ilike(db, product_name)
-            if len(matches) > 1:
+            if not matches:
                 errors.append(
                     ImportLineError(
                         line=index,
-                        message=f"Multiple products match {product_name!r}",
+                        message=(
+                            f"No card matches card_set_id {card_set_id!r}"
+                            + (f" with variant {variant!r}" if variant else "")
+                        ),
                     )
                 )
                 continue
-            if len(matches) == 1:
-                product = matches[0]
-            else:
-                created = await self.products.create(
-                    db,
-                    ProductCreate(name=product_name, category=ProductCategory.OTHER),
-                    user_id,
-                    commit=False,
-                )
-                product_id = created.id
-                lines.append(
-                    BuyLineIn(
-                        product_id=product_id,
-                        quantity=quantity,
-                        unit_price=unit_price,
-                        notes=notes,
-                    )
-                )
-                continue
-
-            lines.append(
-                BuyLineIn(
-                    product_id=product.id,
-                    quantity=quantity,
-                    unit_price=unit_price,
-                    notes=notes,
+            listed = "; ".join(
+                f"{card.card_number} {card.rarity} {card.name}" for card in matches
+            )
+            errors.append(
+                ImportLineError(
+                    line=index,
+                    message=f"Multiple cards match {card_set_id!r}: {listed}",
                 )
             )
 
         return _ParsedImport(fetched=fetched, lines=lines), errors
+
+
+def _ilike_contains(value: str) -> str:
+    escaped = value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
 
 
 class _ParsedImport:
@@ -475,8 +477,9 @@ async def _to_transaction_read(db: AsyncSession, header: InventoryTransaction) -
                 name=names.get(key, "Unknown"),
                 quantity=line.quantity,
                 unit_price=float(line.unit_price),
+                shipping_per_unit=float(line.shipping_per_unit),
+                effective_unit_cost=float(line.effective_unit_cost),
                 line_total=float(line.line_total),
-                notes=line.notes,
             )
         )
         total += Decimal(line.line_total)
@@ -484,7 +487,7 @@ async def _to_transaction_read(db: AsyncSession, header: InventoryTransaction) -
         id=header.id,
         transaction_type=TransactionType(header.transaction_type),
         transaction_date=header.transaction_date,
-        notes=header.notes,
+        shipping_cost=float(header.shipping_cost),
         created_at=header.created_at,
         lines=line_reads,
         total=float(total),

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { apiErrorMessage } from '../../../shared/api/errors'
+import { useDebouncedValue } from '../../../shared/lib/useDebouncedValue'
 import PageHeader from '../../../shared/ui/PageHeader'
 import StatusBanner from '../../../shared/ui/StatusBanner'
 import { useToggleCardFavorite } from '../../favorites/model/mutations'
@@ -19,6 +20,7 @@ function readListParams(searchParams: URLSearchParams): OptcgCardListParams {
   const pageRaw = Number(searchParams.get('page'))
   return {
     page: Number.isInteger(pageRaw) && pageRaw > 0 ? pageRaw : 1,
+    name: searchParams.get('name') ?? '',
     color: searchParams.get('color') ?? '',
     rarity: searchParams.get('rarity') ?? '',
     set_name: searchParams.get('set_name') ?? '',
@@ -28,6 +30,7 @@ function readListParams(searchParams: URLSearchParams): OptcgCardListParams {
 function toSearchParams(params: OptcgCardListParams) {
   const next = new URLSearchParams()
   if (params.page > 1) next.set('page', String(params.page))
+  if (params.name) next.set('name', params.name)
   if (params.color) next.set('color', params.color)
   if (params.rarity) next.set('rarity', params.rarity)
   if (params.set_name) next.set('set_name', params.set_name)
@@ -37,19 +40,45 @@ function toSearchParams(params: OptcgCardListParams) {
 export default function OptcgCardsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const params = readListParams(searchParams)
+  const [nameInput, setNameInput] = useState(params.name)
+  const debouncedName = useDebouncedValue(nameInput, 300)
+  const listParams = { ...params, name: debouncedName }
   const filtersQuery = useOptcgCardFilters()
-  const listQuery = useOptcgCardList(params)
+  const listQuery = useOptcgCardList(listParams)
   const quantitiesQuery = useStockQuantities()
   const favoriteIdsQuery = useFavoriteIds()
   const toggleFavorite = useToggleCardFavorite()
   const [buyTarget, setBuyTarget] = useState<BuyTarget | null>(null)
 
+  useEffect(() => {
+    if (params.name === debouncedName) return
+    setNameInput(params.name)
+  }, [debouncedName, params.name])
+
   function updateParams(next: OptcgCardListParams) {
     setSearchParams(toSearchParams(next))
   }
 
+  useEffect(() => {
+    if (debouncedName === params.name) return
+    setSearchParams(
+      toSearchParams({
+        page: 1,
+        name: debouncedName,
+        color: params.color,
+        rarity: params.rarity,
+        set_name: params.set_name,
+      }),
+    )
+  }, [debouncedName, params.color, params.name, params.rarity, params.set_name, setSearchParams])
+
   function handleFilterChange(values: CardFilterValues) {
-    updateParams({ ...values, page: 1 })
+    const filtersChanged =
+      values.color !== params.color || values.rarity !== params.rarity || values.set_name !== params.set_name
+    setNameInput(values.name)
+    if (filtersChanged) {
+      updateParams({ ...values, page: 1 })
+    }
   }
 
   const cards = listQuery.data?.data ?? []
@@ -68,7 +97,7 @@ export default function OptcgCardsPage() {
         colors={filtersQuery.data?.colors ?? []}
         rarities={filtersQuery.data?.rarities ?? []}
         setNames={filtersQuery.data?.set_names ?? []}
-        values={{ color: params.color, rarity: params.rarity, set_name: params.set_name }}
+        values={{ name: nameInput, color: params.color, rarity: params.rarity, set_name: params.set_name }}
         onChange={handleFilterChange}
       />
       {listQuery.isLoading ? <p className="text-slate-400">Loading cards…</p> : null}
@@ -84,6 +113,7 @@ export default function OptcgCardsPage() {
               image_url={card.card_image}
               name={card.card_name}
               code={card.card_set_id}
+              rarity={card.rarity}
               ownedQuantity={quantitiesQuery.data?.cards[String(card.id)] ?? 0}
               isFavorite={favoriteCardIds.has(card.id)}
               onBuy={() => setBuyTarget({ kind: 'card', id: card.id, name: card.card_name })}
@@ -99,7 +129,7 @@ export default function OptcgCardsPage() {
           page={params.page}
           totalCount={totalCount}
           itemsPerPage={OPTCG_PAGE_SIZE}
-          onPageChange={(page) => updateParams({ ...params, page })}
+          onPageChange={(page) => updateParams({ ...params, name: debouncedName, page })}
         />
       ) : null}
       {buyTarget ? <BuyDialog target={buyTarget} onClose={() => setBuyTarget(null)} /> : null}

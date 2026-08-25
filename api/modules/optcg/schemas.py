@@ -71,6 +71,7 @@ class OptcgCardListItem(BaseModel):
     id: int
     card_name: str
     card_set_id: str
+    rarity: str
     card_image: str | None = None
 
 

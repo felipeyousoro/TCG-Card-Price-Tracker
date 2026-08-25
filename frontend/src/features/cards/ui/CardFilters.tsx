@@ -2,6 +2,7 @@ const selectClass =
   'w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-amber-500/60'
 
 export type CardFilterValues = {
+  name: string
   color: string
   rarity: string
   set_name: string
@@ -21,7 +22,16 @@ export default function CardFilters({
   onChange: (next: CardFilterValues) => void
 }) {
   return (
-    <div className="mb-6 grid gap-4 sm:grid-cols-3">
+    <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <label className="block text-sm">
+        <span className="mb-1.5 block text-slate-400">Search by name</span>
+        <input
+          className={selectClass}
+          value={values.name}
+          onChange={(event) => onChange({ ...values, name: event.target.value })}
+          placeholder="Luffy"
+        />
+      </label>
       <label className="block text-sm">
         <span className="mb-1.5 block text-slate-400">Color</span>
         <select

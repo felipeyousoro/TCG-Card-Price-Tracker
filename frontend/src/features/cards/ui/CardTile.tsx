@@ -2,6 +2,7 @@ export default function CardTile({
   image_url,
   name,
   code,
+  rarity,
   ownedQuantity = 0,
   isFavorite = false,
   onBuy,
@@ -10,6 +11,7 @@ export default function CardTile({
   image_url: string | null
   name: string
   code: string
+  rarity?: string
   ownedQuantity?: number
   isFavorite?: boolean
   onBuy?: () => void
@@ -45,8 +47,8 @@ export default function CardTile({
         <p className="truncate text-sm font-medium text-slate-100" title={name}>
           {name}
         </p>
-        <p className="truncate text-xs text-slate-400" title={code}>
-          {code}
+        <p className="truncate text-xs text-slate-400" title={rarity ? `${code} · ${rarity}` : code}>
+          {rarity ? `${code} · ${rarity}` : code}
         </p>
         {onBuy ? (
           <button
