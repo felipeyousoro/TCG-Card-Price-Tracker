@@ -26,8 +26,11 @@ if config.config_file_name is not None:
 
 from api.core.database.session import Base
 from api.modules.cards import models as _card_models  # noqa: F401
+from api.modules.favorites import models as _favorite_models  # noqa: F401
 from api.modules.importers.jobs import models as _sync_job_models  # noqa: F401
 from api.modules.optcg import models as _optcg_models  # noqa: F401
+from api.modules.products import models as _product_models  # noqa: F401
+from api.modules.stock import models as _stock_models  # noqa: F401
 from api.modules.user import models as _user_models  # noqa: F401
 
 target_metadata = Base.metadata

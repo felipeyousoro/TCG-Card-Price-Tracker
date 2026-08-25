@@ -1,8 +1,13 @@
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { apiErrorMessage } from '../../../shared/api/errors'
 import PageHeader from '../../../shared/ui/PageHeader'
 import StatusBanner from '../../../shared/ui/StatusBanner'
+import { useToggleCardFavorite } from '../../favorites/model/mutations'
+import { useFavoriteIds } from '../../favorites/model/queries'
+import BuyDialog, { type BuyTarget } from '../../stock/ui/BuyDialog'
+import { useStockQuantities } from '../../stock/model/queries'
 import { useOptcgCardFilters, useOptcgCardList } from '../model/queries'
 import type { OptcgCardListParams } from '../model/types'
 import { OPTCG_PAGE_SIZE } from '../model/types'
@@ -34,6 +39,10 @@ export default function OptcgCardsPage() {
   const params = readListParams(searchParams)
   const filtersQuery = useOptcgCardFilters()
   const listQuery = useOptcgCardList(params)
+  const quantitiesQuery = useStockQuantities()
+  const favoriteIdsQuery = useFavoriteIds()
+  const toggleFavorite = useToggleCardFavorite()
+  const [buyTarget, setBuyTarget] = useState<BuyTarget | null>(null)
 
   function updateParams(next: OptcgCardListParams) {
     setSearchParams(toSearchParams(next))
@@ -45,6 +54,7 @@ export default function OptcgCardsPage() {
 
   const cards = listQuery.data?.data ?? []
   const totalCount = listQuery.data?.total_count ?? 0
+  const favoriteCardIds = new Set(favoriteIdsQuery.data?.card_ids ?? [])
 
   return (
     <>
@@ -74,6 +84,12 @@ export default function OptcgCardsPage() {
               image_url={card.card_image}
               name={card.card_name}
               code={card.card_set_id}
+              ownedQuantity={quantitiesQuery.data?.cards[String(card.id)] ?? 0}
+              isFavorite={favoriteCardIds.has(card.id)}
+              onBuy={() => setBuyTarget({ kind: 'card', id: card.id, name: card.card_name })}
+              onToggleFavorite={() =>
+                toggleFavorite.mutate({ cardId: card.id, isFavorite: favoriteCardIds.has(card.id) })
+              }
             />
           ))}
         </div>
@@ -86,6 +102,7 @@ export default function OptcgCardsPage() {
           onPageChange={(page) => updateParams({ ...params, page })}
         />
       ) : null}
+      {buyTarget ? <BuyDialog target={buyTarget} onClose={() => setBuyTarget(null)} /> : null}
     </>
   )
 }

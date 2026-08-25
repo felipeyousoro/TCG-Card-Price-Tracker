@@ -96,8 +96,11 @@ async def async_session() -> AsyncGenerator[AsyncSession, None]:
 def _import_models() -> None:
     """Import all ORM models so metadata is populated before create_all."""
     from ...modules.cards import models as _card_models  # noqa: F401
+    from ...modules.favorites import models as _favorite_models  # noqa: F401
     from ...modules.importers.jobs import models as _sync_job_models  # noqa: F401
     from ...modules.optcg import models as _optcg_models  # noqa: F401
+    from ...modules.products import models as _product_models  # noqa: F401
+    from ...modules.stock import models as _stock_models  # noqa: F401
     from ...modules.user import models as _user_models  # noqa: F401
 
 

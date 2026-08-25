@@ -4,9 +4,11 @@ import RequireAuth from '../features/auth/RequireAuth'
 import LoginPage from '../features/auth/pages/LoginPage'
 import CardGamesPage from '../features/cards/pages/CardGamesPage'
 import OptcgCardsPage from '../features/cards/pages/OptcgCardsPage'
+import FavoritesPage from '../features/favorites/pages/FavoritesPage'
 import HomePage from '../features/home/pages/HomePage'
 import ImportersPage from '../features/importers/pages/ImportersPage'
 import SettingsPage from '../features/settings/pages/SettingsPage'
+import StockPage from '../features/stock/pages/StockPage'
 import AppShell from '../layouts/AppShell'
 import AuthLayout from '../layouts/AuthLayout'
 
@@ -22,6 +24,8 @@ export default function AppRouter() {
             <Route path="/" element={<HomePage />} />
             <Route path="/cards" element={<CardGamesPage />} />
             <Route path="/cards/optcg" element={<OptcgCardsPage />} />
+            <Route path="/stock" element={<StockPage />} />
+            <Route path="/favorites" element={<FavoritesPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/settings/importers" element={<ImportersPage />} />
           </Route>
