@@ -1,19 +1,22 @@
 from typing import Any
 
-from fastcrud.types import GetMultiResponseDict
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
+from sqlalchemy.sql import Select
 
-from .crud import crud_optcg_cards
+from fastcrud.types import GetMultiResponseDict
+
+from ..cards.enums import CardGame
+from ..cards.models import Card
 from .models import OptcgCard
-from .schemas import OptcgCardCreate, OptcgCardFilterOptions, OptcgCardListItem
+from .schemas import OptcgCardCreate, OptcgCardFilterOptions
 
 INSERT_BATCH_SIZE = 500
 
 
 class OptcgCatalogService:
-    """Persistence for the shared OPTCG card catalog."""
+    """Persistence for the OPTCG catalog (shared identity + game detail)."""
 
     async def bulk_insert_missing(
         self,
@@ -22,8 +25,9 @@ class OptcgCatalogService:
     ) -> tuple[int, int]:
         """Insert cards that do not already exist for the same name and set.
 
-        Skips rows whose `(card_name, set_id)` is already in the catalog or
-        duplicated within the incoming payload.
+        Skips rows whose `(game, name, set_code)` is already in the catalog
+        or duplicated within the incoming payload. Writes a `card` row and an
+        `optcg_card` detail row in the same transaction.
 
         Args:
             cards: Mapped catalog cards to consider for insert.
@@ -32,8 +36,10 @@ class OptcgCatalogService:
         Returns:
             A tuple of `(inserted, skipped)` counts.
         """
-        result = await db.execute(select(OptcgCard.card_name, OptcgCard.set_id))
-        existing = {(row.card_name, row.set_id) for row in result.all()}
+        result = await db.execute(
+            select(Card.name, Card.set_code).where(Card.game == CardGame.OPTCG.value)
+        )
+        existing = {(row.name, row.set_code) for row in result.all()}
 
         to_insert: list[OptcgCardCreate] = []
         skipped = 0
@@ -50,7 +56,39 @@ class OptcgCatalogService:
 
         for offset in range(0, len(to_insert), INSERT_BATCH_SIZE):
             batch = to_insert[offset : offset + INSERT_BATCH_SIZE]
-            db.add_all([OptcgCard(**card.model_dump()) for card in batch])
+            identities: list[tuple[Card, OptcgCardCreate]] = []
+            for source in batch:
+                identity = Card(
+                    game=CardGame.OPTCG.value,
+                    name=source.card_name,
+                    set_name=source.set_name,
+                    set_code=source.set_id,
+                    card_number=source.card_set_id,
+                    rarity=source.rarity,
+                    card_type=source.card_type,
+                    image_url=source.card_image,
+                )
+                db.add(identity)
+                identities.append((identity, source))
+            await db.flush()
+            db.add_all(
+                [
+                    OptcgCard(
+                        card_id=identity.id,
+                        date_scraped=source.date_scraped,
+                        card_text=source.card_text,
+                        card_color=source.card_color,
+                        life=source.life,
+                        card_cost=source.card_cost,
+                        card_power=source.card_power,
+                        sub_types=source.sub_types,
+                        counter_amount=source.counter_amount,
+                        attribute=source.attribute,
+                        card_image_id=source.card_image_id,
+                    )
+                    for identity, source in identities
+                ]
+            )
             await db.flush()
 
         await db.commit()
@@ -65,34 +103,75 @@ class OptcgCatalogService:
         rarity: str | None = None,
         set_name: str | None = None,
     ) -> GetMultiResponseDict:
-        """Return a page of catalog cards, optionally filtered."""
-        filters: dict[str, str] = {}
-        if color:
-            filters["card_color"] = color
-        if rarity:
-            filters["rarity"] = rarity
-        if set_name:
-            filters["set_name"] = set_name
+        """Return a page of OPTCG catalog cards, optionally filtered."""
+        filters = _optcg_filters(color=color, rarity=rarity, set_name=set_name)
 
-        return await crud_optcg_cards.get_multi(
-            db=db,
-            offset=skip,
-            limit=limit,
-            schema_to_select=OptcgCardListItem,
-            sort_columns=["set_id", "card_set_id"],
-            sort_orders=["asc", "asc"],
-            **filters,
+        count_stmt = select(func.count()).select_from(Card).join(OptcgCard).where(*filters)
+        total = int((await db.execute(count_stmt)).scalar_one())
+
+        stmt = (
+            select(
+                Card.id,
+                Card.name,
+                Card.card_number,
+                Card.image_url,
+            )
+            .join(OptcgCard)
+            .where(*filters)
+            .order_by(Card.set_code.asc(), Card.card_number.asc())
+            .offset(skip)
+            .limit(limit)
         )
+        rows = (await db.execute(stmt)).all()
+        return {
+            "data": [
+                {
+                    "id": row.id,
+                    "card_name": row.name,
+                    "card_set_id": row.card_number,
+                    "card_image": row.image_url,
+                }
+                for row in rows
+            ],
+            "total_count": total,
+        }
 
     async def list_filter_options(self, db: AsyncSession) -> OptcgCardFilterOptions:
         """Return distinct color, rarity, and set name values for filters."""
         return OptcgCardFilterOptions(
-            colors=await _distinct_values(db, OptcgCard.card_color),
-            rarities=await _distinct_values(db, OptcgCard.rarity),
-            set_names=await _distinct_values(db, OptcgCard.set_name),
+            colors=await _distinct_optcg_colors(db),
+            rarities=await _distinct_card_values(db, Card.rarity),
+            set_names=await _distinct_card_values(db, Card.set_name),
         )
 
 
-async def _distinct_values(db: AsyncSession, column: InstrumentedAttribute[Any]) -> list[str]:
+def _optcg_filters(
+    color: str | None = None,
+    rarity: str | None = None,
+    set_name: str | None = None,
+) -> list[ColumnElement[bool]]:
+    filters: list[ColumnElement[bool]] = [Card.game == CardGame.OPTCG.value]
+    if color:
+        filters.append(OptcgCard.card_color == color)
+    if rarity:
+        filters.append(Card.rarity == rarity)
+    if set_name:
+        filters.append(Card.set_name == set_name)
+    return filters
+
+
+async def _distinct_optcg_colors(db: AsyncSession) -> list[str]:
+    column = OptcgCard.card_color
     result = await db.execute(select(column).where(column.is_not(None)).distinct().order_by(column))
+    return [value for value in result.scalars().all() if value]
+
+
+async def _distinct_card_values(db: AsyncSession, column: InstrumentedAttribute[Any]) -> list[str]:
+    stmt: Select = (
+        select(column)
+        .where(Card.game == CardGame.OPTCG.value, column.is_not(None))
+        .distinct()
+        .order_by(column)
+    )
+    result = await db.execute(stmt)
     return [value for value in result.scalars().all() if value]

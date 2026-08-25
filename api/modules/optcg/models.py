@@ -1,33 +1,23 @@
 from datetime import date
 
-from sqlalchemy import Date, Integer, String, Text, UniqueConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Date, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...core.database.models import TimestampMixin
 from ...core.database.session import Base
+from ..cards.models import Card
 
 
 class OptcgCard(Base, TimestampMixin):
-    """One Piece TCG card scraped from an official or third-party source."""
+    """One Piece TCG fields that do not belong on the shared card identity."""
 
     __tablename__ = "optcg_card"
-    __table_args__ = (
-        UniqueConstraint("card_name", "set_id", name="uq_optcg_card_name_set_id"),
-    )
 
-    id: Mapped[int] = mapped_column(
-        autoincrement=True,
-        nullable=False,
+    card_id: Mapped[int] = mapped_column(
+        ForeignKey("card.id", ondelete="CASCADE"),
         primary_key=True,
-        init=False,
     )
 
-    card_name: Mapped[str] = mapped_column(String)
-    set_name: Mapped[str] = mapped_column(String)
-    set_id: Mapped[str] = mapped_column(String)
-    rarity: Mapped[str] = mapped_column(String)
-    card_set_id: Mapped[str] = mapped_column(String)
-    card_type: Mapped[str] = mapped_column(String)
     date_scraped: Mapped[date] = mapped_column(Date)
 
     card_text: Mapped[str | None] = mapped_column(Text, default=None)
@@ -39,4 +29,5 @@ class OptcgCard(Base, TimestampMixin):
     counter_amount: Mapped[int | None] = mapped_column(Integer, default=None)
     attribute: Mapped[str | None] = mapped_column(String, default=None)
     card_image_id: Mapped[str | None] = mapped_column(String, default=None)
-    card_image: Mapped[str | None] = mapped_column(String, default=None)
+
+    card: Mapped[Card] = relationship(back_populates="optcg_detail", init=False)
