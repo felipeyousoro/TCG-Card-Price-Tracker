@@ -46,6 +46,14 @@ class LogLevel(StrEnum):
     CRITICAL = "CRITICAL"
 
 
+class TcgplayerSource(StrEnum):
+    """Fetch backend for the TCGPlayer importer."""
+
+    TCGCSV = "tcgcsv"
+    TCGPLAYER_API = "tcgplayer_api"
+    SCRAPER = "scraper"
+
+
 class LogFormat(StrEnum):
     """Log format types.
 

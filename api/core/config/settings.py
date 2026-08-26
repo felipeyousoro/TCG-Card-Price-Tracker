@@ -5,7 +5,7 @@ from enum import StrEnum
 from pydantic_settings import BaseSettings
 from starlette.config import Config
 
-from .enums import LogFormat, LogLevel, CacheBackend, SessionBackend
+from .enums import LogFormat, LogLevel, CacheBackend, SessionBackend, TcgplayerSource
 
 logger = logging.getLogger(__name__)
 
@@ -198,6 +198,25 @@ class OptcgApiSettings(BaseSettings):
     OPTCGAPI_TIMEOUT_SECONDS: float = config("OPTCGAPI_TIMEOUT_SECONDS", default=120, cast=float)
 
 
+class TcgplayerSettings(BaseSettings):
+    """Settings for TCGPlayer / TCGCSV price and catalog backends."""
+
+    TCGCSV_BASE_URL: str = config("TCGCSV_BASE_URL", default="https://tcgcsv.com")
+    TCGCSV_TIMEOUT_SECONDS: float = config("TCGCSV_TIMEOUT_SECONDS", default=30, cast=float)
+    TCGPLAYER_API_KEY: str = config("TCGPLAYER_API_KEY", default="")
+    TCGPLAYER_SOURCE: str = config("TCGPLAYER_SOURCE", default="")
+
+    @property
+    def resolved_tcgplayer_source(self) -> TcgplayerSource:
+        """Pick TCGCSV unless an official API key or explicit override is set."""
+        override = self.TCGPLAYER_SOURCE.strip().lower()
+        if override:
+            return TcgplayerSource(override)
+        if self.TCGPLAYER_API_KEY.strip():
+            return TcgplayerSource.TCGPLAYER_API
+        return TcgplayerSource.TCGCSV
+
+
 class LoggingSettings(BaseSettings):
     """Centralized logging configuration settings."""
 
@@ -246,6 +265,7 @@ class Settings(
     SecuritySettings,
     LoggingSettings,
     OptcgApiSettings,
+    TcgplayerSettings,
 ):
     """Main settings class that combines all setting categories."""
 
