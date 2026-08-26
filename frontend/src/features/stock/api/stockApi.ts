@@ -1,12 +1,13 @@
 import { http } from '../../../shared/api/http'
 import type {
-  BuyImportRequest,
-  BuyImportResult,
   BuyPayload,
+  ImportPreviewRequest,
+  ImportPreviewResult,
   PaginatedHoldings,
   PaginatedTransactions,
   StockQuantities,
   StockTransaction,
+  TransactionCreate,
 } from '../model/types'
 import { HISTORY_PAGE_SIZE, STOCK_PAGE_SIZE } from '../model/types'
 
@@ -39,8 +40,13 @@ export async function buyProduct(productId: number, payload: BuyPayload) {
   return data
 }
 
-export async function importBuys(payload: BuyImportRequest) {
-  const { data } = await http.post<BuyImportResult>('/stock/transactions/import', payload)
+export async function previewImport(payload: ImportPreviewRequest) {
+  const { data } = await http.post<ImportPreviewResult>('/stock/transactions/import/preview', payload)
+  return data
+}
+
+export async function createTransaction(payload: TransactionCreate) {
+  const { data } = await http.post<StockTransaction>('/stock/transactions', payload)
   return data
 }
 

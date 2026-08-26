@@ -14,12 +14,12 @@ from .enums import ItemType, TransactionType
 from .models import InventoryTransaction, StockTransaction, UserCardStock, UserProductStock
 from .schemas import (
     BuyCardRequest,
-    BuyImportRequest,
-    BuyImportResult,
     BuyLineIn,
     BuyProductRequest,
     HoldingItem,
-    ImportLineError,
+    ImportPreviewLine,
+    ImportPreviewMatch,
+    ImportPreviewResult,
     StockLineRead,
     StockQuantities,
     TransactionCreate,
@@ -301,127 +301,8 @@ class StockService:
             products={str(row.product_id): int(row.quantity) for row in product_rows},
         )
 
-    async def import_buys_from_text(
-        self,
-        db: AsyncSession,
-        user_id: int,
-        payload: BuyImportRequest,
-    ) -> BuyImportResult:
-        parsed, errors = await self._parse_import_lines(db, payload.text)
-        fetched = parsed.fetched
-        skipped = len(errors)
-        if not parsed.lines:
-            return BuyImportResult(
-                fetched=fetched,
-                inserted=0,
-                skipped=skipped,
-                errors=errors,
-                transaction_id=None,
-            )
-
-        result = await self.record_buy(
-            db,
-            user_id=user_id,
-            transaction_date=payload.transaction_date,
-            shipping_cost=payload.shipping_cost,
-            lines=parsed.lines,
-        )
-        return BuyImportResult(
-            fetched=fetched,
-            inserted=len(parsed.lines),
-            skipped=skipped,
-            errors=errors,
-            transaction_id=result.id,
-        )
-
-    async def _parse_import_lines(
-        self,
-        db: AsyncSession,
-        text: str,
-    ) -> tuple["_ParsedImport", list[ImportLineError]]:
-        lines: list[BuyLineIn] = []
-        errors: list[ImportLineError] = []
-        fetched = 0
-
-        for index, raw in enumerate(text.splitlines(), start=1):
-            row = raw.strip()
-            if not row:
-                continue
-            parts = [part.strip() for part in row.split(";")]
-            if len(parts) >= 2 and parts[0].lower() == "card_set_id" and parts[1].lower() == "variant":
-                continue
-            fetched += 1
-            if len(parts) < 4:
-                errors.append(
-                    ImportLineError(
-                        line=index,
-                        message="Expected card_set_id;variant;quantity;unit_price",
-                    )
-                )
-                continue
-
-            card_set_id, variant, qty_raw, price_raw = parts[0], parts[1], parts[2], parts[3]
-            if not card_set_id:
-                errors.append(ImportLineError(line=index, message="card_set_id is required"))
-                continue
-
-            try:
-                quantity = int(qty_raw)
-                if quantity < 1:
-                    raise ValueError
-            except ValueError:
-                errors.append(ImportLineError(line=index, message="Quantity must be a positive integer"))
-                continue
-
-            try:
-                unit_price = Decimal(price_raw)
-                if unit_price < 0:
-                    raise InvalidOperation
-            except (InvalidOperation, ValueError):
-                errors.append(ImportLineError(line=index, message="Unit price must be a non-negative number"))
-                continue
-
-            stmt = select(Card).where(func.lower(Card.card_number) == card_set_id.lower())
-            if variant:
-                pattern = _ilike_contains(variant)
-                stmt = stmt.where(
-                    or_(
-                        Card.name.ilike(pattern, escape="\\"),
-                        Card.rarity.ilike(pattern, escape="\\"),
-                    )
-                )
-            matches = list((await db.execute(stmt)).scalars().all())
-            if len(matches) == 1:
-                lines.append(
-                    BuyLineIn(
-                        card_id=matches[0].id,
-                        quantity=quantity,
-                        unit_price=unit_price,
-                    )
-                )
-                continue
-            if not matches:
-                errors.append(
-                    ImportLineError(
-                        line=index,
-                        message=(
-                            f"No card matches card_set_id {card_set_id!r}"
-                            + (f" with variant {variant!r}" if variant else "")
-                        ),
-                    )
-                )
-                continue
-            listed = "; ".join(
-                f"{card.card_number} {card.rarity} {card.name}" for card in matches
-            )
-            errors.append(
-                ImportLineError(
-                    line=index,
-                    message=f"Multiple cards match {card_set_id!r}: {listed}",
-                )
-            )
-
-        return _ParsedImport(fetched=fetched, lines=lines), errors
+    async def preview_import(self, db: AsyncSession, text: str) -> ImportPreviewResult:
+        return await _parse_import_preview(db, text)
 
 
 def _ilike_contains(value: str) -> str:
@@ -429,10 +310,82 @@ def _ilike_contains(value: str) -> str:
     return f"%{escaped}%"
 
 
-class _ParsedImport:
-    def __init__(self, fetched: int, lines: list[BuyLineIn]) -> None:
-        self.fetched = fetched
-        self.lines = lines
+async def _parse_import_preview(db: AsyncSession, text: str) -> ImportPreviewResult:
+    lines: list[ImportPreviewLine] = []
+    unmatched: list[str] = []
+
+    for raw in text.splitlines():
+        row = raw.strip()
+        if not row:
+            continue
+        parts = [part.strip() for part in row.split(";")]
+        if len(parts) >= 2 and parts[0].lower() == "card_set_id" and parts[1].lower() == "variant":
+            continue
+
+        if len(parts) < 4:
+            unmatched.append(raw)
+            continue
+
+        card_set_id, variant, qty_raw, price_raw = parts[0], parts[1], parts[2], parts[3]
+        if not card_set_id:
+            unmatched.append(raw)
+            continue
+
+        try:
+            quantity = int(qty_raw)
+            if quantity < 1:
+                raise ValueError
+        except ValueError:
+            unmatched.append(raw)
+            continue
+
+        try:
+            unit_price = Decimal(price_raw)
+            if unit_price < 0:
+                raise InvalidOperation
+        except (InvalidOperation, ValueError):
+            unmatched.append(raw)
+            continue
+
+        stmt = (
+            select(Card)
+            .where(func.lower(Card.card_number) == card_set_id.lower())
+            .order_by(Card.id.asc())
+        )
+        if variant:
+            pattern = _ilike_contains(variant)
+            stmt = stmt.where(
+                or_(
+                    Card.name.ilike(pattern, escape="\\"),
+                    Card.rarity.ilike(pattern, escape="\\"),
+                )
+            )
+        matches = list((await db.execute(stmt)).scalars().all())
+        if not matches:
+            unmatched.append(raw)
+            continue
+
+        preview_matches = [
+            ImportPreviewMatch(
+                card_id=card.id,
+                name=card.name,
+                card_number=card.card_number,
+                rarity=card.rarity,
+                image_url=card.image_url,
+            )
+            for card in matches
+        ]
+        lines.append(
+            ImportPreviewLine(
+                quantity=quantity,
+                unit_price=float(unit_price),
+                auto_chosen=len(matches) > 1,
+                selected_card_id=preview_matches[0].card_id,
+                matches=preview_matches,
+            )
+        )
+
+    return ImportPreviewResult(lines=lines, unmatched_text="\n".join(unmatched))
 
 
 async def _require_card(db: AsyncSession, card_id: int) -> None:

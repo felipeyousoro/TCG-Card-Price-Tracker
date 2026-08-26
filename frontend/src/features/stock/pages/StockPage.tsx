@@ -48,7 +48,7 @@ export default function StockPage() {
 
   const header = useMemo(() => {
     if (tab === 'history') return { title: 'Buy history', description: 'Orders grouped by store visit or online purchase.' }
-    if (tab === 'import') return { title: 'Import buys', description: 'Paste one card order. Optional variant for parallel printings.' }
+    if (tab === 'import') return { title: 'Import buys', description: 'Paste one card order, review printings, then save.' }
     return { title: 'Holdings', description: 'What you own and the average you paid.' }
   }, [tab])
 

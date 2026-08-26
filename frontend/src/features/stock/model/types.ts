@@ -45,18 +45,35 @@ export type BuyPayload = {
   shipping_cost?: number
 }
 
-export type BuyImportRequest = {
-  transaction_date: string
-  shipping_cost?: number
+export type ImportPreviewMatch = {
+  card_id: number
+  name: string
+  card_number: string
+  rarity: string
+  image_url: string | null
+}
+
+export type ImportPreviewLine = {
+  quantity: number
+  unit_price: number
+  auto_chosen: boolean
+  selected_card_id: number
+  matches: ImportPreviewMatch[]
+}
+
+export type ImportPreviewRequest = {
   text: string
 }
 
-export type BuyImportResult = {
-  fetched: number
-  inserted: number
-  skipped: number
-  errors: { line: number; message: string }[]
-  transaction_id: string | null
+export type ImportPreviewResult = {
+  lines: ImportPreviewLine[]
+  unmatched_text: string
+}
+
+export type TransactionCreate = {
+  transaction_date: string
+  shipping_cost?: number
+  lines: { card_id: number; quantity: number; unit_price: number }[]
 }
 
 export type PaginatedHoldings = {

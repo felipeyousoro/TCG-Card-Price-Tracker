@@ -1,8 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { buyCard, buyProduct, deleteTransaction, importBuys } from '../api/stockApi'
+import { buyCard, buyProduct, createTransaction, deleteTransaction, previewImport } from '../api/stockApi'
 import { stockKeys } from './keys'
-import type { BuyImportRequest, BuyPayload } from './types'
+import type { BuyPayload, ImportPreviewRequest, TransactionCreate } from './types'
 
 function invalidateStock(queryClient: ReturnType<typeof useQueryClient>) {
   return queryClient.invalidateQueries({ queryKey: stockKeys.all })
@@ -25,10 +25,16 @@ export function useBuyProductMutation() {
   })
 }
 
-export function useImportBuysMutation() {
+export function usePreviewImportMutation() {
+  return useMutation({
+    mutationFn: (payload: ImportPreviewRequest) => previewImport(payload),
+  })
+}
+
+export function useCreateTransactionMutation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: BuyImportRequest) => importBuys(payload),
+    mutationFn: (payload: TransactionCreate) => createTransaction(payload),
     onSuccess: () => invalidateStock(queryClient),
   })
 }

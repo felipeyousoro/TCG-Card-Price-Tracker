@@ -10,10 +10,10 @@ from ...core.dependencies import AsyncSessionDep, CurrentUserDep
 from .dependencies import StockServiceDep
 from .schemas import (
     BuyCardRequest,
-    BuyImportRequest,
-    BuyImportResult,
     BuyProductRequest,
     HoldingItem,
+    ImportPreviewRequest,
+    ImportPreviewResult,
     StockQuantities,
     TransactionCreate,
     TransactionRead,
@@ -61,19 +61,19 @@ async def list_transactions(
 
 
 @router.post(
-    "/transactions/import",
-    response_model=BuyImportResult,
-    summary="Import one order from pasted lines",
+    "/transactions/import/preview",
+    response_model=ImportPreviewResult,
+    summary="Preview pasted buy lines without writing stock",
     responses={401: {"description": "Not authenticated"}},
 )
-async def import_transactions(
-    payload: BuyImportRequest,
+async def preview_import_transactions(
+    payload: ImportPreviewRequest,
     db: AsyncSessionDep,
-    current_user: CurrentUserDep,
+    _current_user: CurrentUserDep,
     stock: StockServiceDep,
-) -> BuyImportResult:
-    """Parse pasted semicolon-separated lines into one buy transaction."""
-    return await stock.import_buys_from_text(db, current_user["id"], payload)
+) -> ImportPreviewResult:
+    """Resolve pasted semicolon-separated lines to catalog cards."""
+    return await stock.preview_import(db, payload.text)
 
 
 @router.post(

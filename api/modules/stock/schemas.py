@@ -56,27 +56,33 @@ class TransactionCreate(BaseModel):
     lines: list[BuyLineIn] = Field(min_length=1)
 
 
-class BuyImportRequest(BaseModel):
-    """Paste import: one payload is one order of catalog cards."""
+class ImportPreviewRequest(BaseModel):
+    """Paste import preview: resolve catalog cards without writing stock."""
 
     model_config = ConfigDict(extra="forbid")
 
-    transaction_date: date
-    shipping_cost: Decimal = Field(default=Decimal("0"), ge=0)
     text: str = Field(min_length=1)
 
 
-class ImportLineError(BaseModel):
-    line: int
-    message: str
+class ImportPreviewMatch(BaseModel):
+    card_id: int
+    name: str
+    card_number: str
+    rarity: str
+    image_url: str | None = None
 
 
-class BuyImportResult(BaseModel):
-    fetched: int
-    inserted: int
-    skipped: int
-    errors: list[ImportLineError] = Field(default_factory=list)
-    transaction_id: UUID | None = None
+class ImportPreviewLine(BaseModel):
+    quantity: int
+    unit_price: float
+    auto_chosen: bool
+    selected_card_id: int
+    matches: list[ImportPreviewMatch] = Field(min_length=1)
+
+
+class ImportPreviewResult(BaseModel):
+    lines: list[ImportPreviewLine] = Field(default_factory=list)
+    unmatched_text: str = ""
 
 
 class StockLineRead(BaseModel):
