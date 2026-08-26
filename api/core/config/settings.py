@@ -191,18 +191,11 @@ class SecuritySettings(BaseSettings):
     SECURITY_HEADERS_ENABLED: bool = config("SECURITY_HEADERS_ENABLED", default=True, cast=bool)
 
 
-class OptcgApiSettings(BaseSettings):
-    """Settings for the optcgapi.com catalog importer."""
-
-    OPTCGAPI_BASE_URL: str = config("OPTCGAPI_BASE_URL", default="https://www.optcgapi.com")
-    OPTCGAPI_TIMEOUT_SECONDS: float = config("OPTCGAPI_TIMEOUT_SECONDS", default=120, cast=float)
-
-
 class TcgplayerSettings(BaseSettings):
     """Settings for TCGPlayer / TCGCSV price and catalog backends."""
 
     TCGCSV_BASE_URL: str = config("TCGCSV_BASE_URL", default="https://tcgcsv.com")
-    TCGCSV_TIMEOUT_SECONDS: float = config("TCGCSV_TIMEOUT_SECONDS", default=30, cast=float)
+    TCGCSV_TIMEOUT_SECONDS: float = config("TCGCSV_TIMEOUT_SECONDS", default=120, cast=float)
     TCGPLAYER_API_KEY: str = config("TCGPLAYER_API_KEY", default="")
     TCGPLAYER_SOURCE: str = config("TCGPLAYER_SOURCE", default="")
 
@@ -264,7 +257,6 @@ class Settings(
     SQLAdminSettings,
     SecuritySettings,
     LoggingSettings,
-    OptcgApiSettings,
     TcgplayerSettings,
 ):
     """Main settings class that combines all setting categories."""

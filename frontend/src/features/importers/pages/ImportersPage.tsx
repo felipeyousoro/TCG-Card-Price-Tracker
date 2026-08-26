@@ -1,13 +1,17 @@
+import { useState } from 'react'
+
 import { apiErrorMessage } from '../../../shared/api/errors'
 import PageHeader from '../../../shared/ui/PageHeader'
 import StatusBanner from '../../../shared/ui/StatusBanner'
-import { useImportersList } from '../model/queries'
+import { useImportersList, useTcgcsvGroups } from '../model/queries'
 import { useImporterSync } from '../model/useImporterSync'
 import type { ImporterInfo } from '../model/types'
 import ImporterSyncCard from '../ui/ImporterSyncCard'
 
 function ImporterCardContainer({ importer }: { importer: ImporterInfo }) {
   const { run, isStarting, startError, sync } = useImporterSync(importer)
+  const groupsQuery = useTcgcsvGroups()
+  const [selectedGroupId, setSelectedGroupId] = useState('')
 
   return (
     <ImporterSyncCard
@@ -16,7 +20,17 @@ function ImporterCardContainer({ importer }: { importer: ImporterInfo }) {
       run={run}
       isStarting={isStarting}
       startError={startError ? apiErrorMessage(startError) : undefined}
-      onSync={sync}
+      groups={groupsQuery.data ?? []}
+      selectedGroupId={selectedGroupId}
+      onSelectedGroupIdChange={setSelectedGroupId}
+      onSyncSelected={() => {
+        const groupId = Number(selectedGroupId)
+        if (!Number.isInteger(groupId) || groupId <= 0) {
+          return
+        }
+        sync({ group_ids: [groupId] })
+      }}
+      onSyncAll={() => sync()}
     />
   )
 }

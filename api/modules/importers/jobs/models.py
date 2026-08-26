@@ -45,5 +45,10 @@ class SyncJob(Base, TimestampMixin):
         default_factory=list,
         server_default=text("'[]'::jsonb"),
     )
+    params: Mapped[dict[str, Any]] = mapped_column(
+        JSONB,
+        default_factory=dict,
+        server_default=text("'{}'::jsonb"),
+    )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)

@@ -2,14 +2,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { startSync } from '../api/importersApi'
 import { importerKeys } from './keys'
-import type { SyncJob } from './types'
+import type { StartSyncRequest, SyncJob } from './types'
 
 export function useStartSyncMutation(source: string) {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationKey: [...importerKeys.all, 'sync', source],
-    mutationFn: () => startSync(source),
+    mutationFn: (body?: StartSyncRequest) => startSync(source, body),
     retry: 0,
     onSuccess: (data) => {
       const queued: SyncJob = {

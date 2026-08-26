@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, UniqueConstraint
+from sqlalchemy import Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ...core.database.models import TimestampMixin
@@ -18,8 +18,8 @@ class Card(Base, TimestampMixin):
         UniqueConstraint(
             "game",
             "name",
-            "set_code",
-            name="uq_card_game_name_set_code",
+            "set_name",
+            name="uq_card_game_name_set_name",
         ),
     )
 
@@ -33,7 +33,7 @@ class Card(Base, TimestampMixin):
     game: Mapped[str] = mapped_column(String(20), index=True)
     name: Mapped[str] = mapped_column(String)
     set_name: Mapped[str] = mapped_column(String)
-    set_code: Mapped[str] = mapped_column(String)
+    tcgplayer_id: Mapped[int] = mapped_column(Integer, unique=True)
     card_number: Mapped[str] = mapped_column(String)
     rarity: Mapped[str] = mapped_column(String)
     card_type: Mapped[str] = mapped_column(String)

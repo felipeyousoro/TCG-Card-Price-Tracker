@@ -28,6 +28,5 @@ class OptcgCard(Base, TimestampMixin):
     sub_types: Mapped[str | None] = mapped_column(String, default=None)
     counter_amount: Mapped[int | None] = mapped_column(Integer, default=None)
     attribute: Mapped[str | None] = mapped_column(String, default=None)
-    card_image_id: Mapped[str | None] = mapped_column(String, default=None)
 
     card: Mapped[Card] = relationship(back_populates="optcg_detail", init=False)

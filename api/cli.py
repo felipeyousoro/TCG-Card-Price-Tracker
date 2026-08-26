@@ -24,7 +24,7 @@ async def _import_all_sets(source: str) -> ImportResult:
 
 @app.command("import-all-sets")
 def import_all_sets(
-    source: str = typer.Option(..., "--source", help="Importer source key, e.g. optcgapi"),
+    source: str = typer.Option(..., "--source", help="Importer source key, e.g. tcgcsv"),
 ) -> None:
     """Import missing OPTCG catalog cards from a registered source."""
     try:

@@ -2,14 +2,14 @@ from ...common.exceptions import ValidationError
 from ...core.config.settings import get_settings
 from ...modules.optcg.service import OptcgCatalogService
 from .base import OptcgImporter
-from .optcgapi.client import OptcgApiClient
-from .optcgapi.importer import OptcgApiImporter
+from .tcgplayer.api.tcgcsv.client import TcgcsvClient
+from .tcgplayer.importer import TcgcsvImporter
 
 _IMPORTER_CATALOG: tuple[dict[str, str], ...] = (
     {
-        "source": "optcgapi",
-        "label": "optcgapi",
-        "description": "Import the full OPTCG card catalog from optcgapi.com.",
+        "source": "tcgcsv",
+        "label": "TCGCSV",
+        "description": "Import OPTCG catalog products from tcgcsv.com TCGPlayer groups.",
     },
 )
 
@@ -24,12 +24,12 @@ def list_importer_catalog() -> tuple[dict[str, str], ...]:
 def get_importer(source: str) -> OptcgImporter:
     """Build an OPTCG importer by source key."""
     normalized = source.strip().lower()
-    if normalized == OptcgApiImporter.source:
+    if normalized == TcgcsvImporter.source:
         settings = get_settings()
-        return OptcgApiImporter(
-            client=OptcgApiClient(
-                base_url=settings.OPTCGAPI_BASE_URL,
-                timeout=settings.OPTCGAPI_TIMEOUT_SECONDS,
+        return TcgcsvImporter(
+            client=TcgcsvClient(
+                base_url=settings.TCGCSV_BASE_URL,
+                timeout=settings.TCGCSV_TIMEOUT_SECONDS,
             ),
             catalog=OptcgCatalogService(),
         )

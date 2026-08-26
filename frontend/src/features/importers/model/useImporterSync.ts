@@ -5,7 +5,7 @@ import { catalogKeys } from '../../../shared/query/catalogKeys'
 import { useStartSyncMutation } from './mutations'
 import { importerKeys } from './keys'
 import { jobQueryOptions } from './queries'
-import { isActiveJobStatus, jobToRun, type ImporterInfo } from './types'
+import { isActiveJobStatus, jobToRun, type ImporterInfo, type StartSyncRequest } from './types'
 
 export function useImporterSync(importer: ImporterInfo) {
   const queryClient = useQueryClient()
@@ -44,6 +44,6 @@ export function useImporterSync(importer: ImporterInfo) {
     run,
     isStarting: startMutation.isPending,
     startError: startMutation.error ?? (jobQuery.isError && !jobQuery.data ? jobQuery.error : undefined),
-    sync: () => startMutation.mutate(),
+    sync: (body?: StartSyncRequest) => startMutation.mutate(body),
   }
 }

@@ -38,7 +38,7 @@ class CardCatalogService:
             offset=skip,
             limit=limit,
             schema_to_select=CardListItem,
-            sort_columns=["set_code", "card_number"],
+            sort_columns=["set_name", "card_number"],
             sort_orders=["asc", "asc"],
             **filters,
         )

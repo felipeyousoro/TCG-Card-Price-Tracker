@@ -14,7 +14,7 @@ class CardRead(BaseModel):
     game: CardGame
     name: str
     set_name: str
-    set_code: str
+    tcgplayer_id: int
     card_number: str
     rarity: str
     card_type: str
@@ -32,7 +32,7 @@ class CardListItem(BaseModel):
     game: CardGame
     name: str
     set_name: str
-    set_code: str
+    tcgplayer_id: int
     card_number: str
     rarity: str
     card_type: str

@@ -74,9 +74,19 @@ async def append_log(
     await db.commit()
 
 
-async def create_job(db: AsyncSession, source: str, user_id: int) -> SyncJob:
+async def create_job(
+    db: AsyncSession,
+    source: str,
+    user_id: int,
+    params: dict[str, Any] | None = None,
+) -> SyncJob:
     """Insert a queued sync job and return it."""
-    job = SyncJob(source=source, created_by_user_id=user_id, status=SyncJobStatus.QUEUED.value)
+    job = SyncJob(
+        source=source,
+        created_by_user_id=user_id,
+        status=SyncJobStatus.QUEUED.value,
+        params=params or {},
+    )
     _append_to_job(job, SyncJobLogLevel.INFO, "Queued catalog sync")
     db.add(job)
     await db.commit()

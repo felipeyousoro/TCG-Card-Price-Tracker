@@ -29,6 +29,17 @@ export type ImporterInfo = {
   latest_job: SyncJob | null
 }
 
+export type TcgplayerGroup = {
+  name: string
+  category_id: number
+  group_id: number
+  enabled: boolean
+}
+
+export type StartSyncRequest = {
+  group_ids?: number[]
+}
+
 export type StartSyncResponse = {
   job_id: string
 }

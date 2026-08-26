@@ -28,6 +28,7 @@ class OptcgImporter(Protocol):
         db: AsyncSession,
         *,
         on_progress: ProgressCallback | None = None,
+        group_ids: list[int] | None = None,
     ) -> ImportResult:
         """Fetch cards from the source and insert missing catalog rows."""
         ...

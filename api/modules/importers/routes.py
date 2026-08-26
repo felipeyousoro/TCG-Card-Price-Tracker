@@ -11,10 +11,12 @@ from ...common.utils.error_handler import handle_exception
 from ...core.auth.http_exceptions import HTTPException, NotFoundException
 from ...core.dependencies import AsyncSessionDep, CurrentUserDep
 from .jobs.runner import run_sync_job
-from .jobs.schemas import StartSyncResponse, SyncJobRead
+from .jobs.schemas import StartSyncRequest, StartSyncResponse, SyncJobRead
 from .jobs.service import create_job, get_active_job_for_source, get_job, get_latest_job
 from .registry import get_importer, list_importer_catalog
-from .schemas import ImporterInfo
+from .schemas import ImporterInfo, TcgplayerGroupRead
+from .tcgplayer.groups import load_optcg_groups
+from .tcgplayer.importer import resolve_groups
 
 router = APIRouter(prefix="/importers", tags=["Importers"])
 
@@ -44,6 +46,17 @@ async def list_importers(
     return items
 
 
+@router.get(
+    "/tcgcsv/groups",
+    response_model=list[TcgplayerGroupRead],
+    summary="List TCGCSV OPTCG groups",
+    description="Returns the curated TCGPlayer groups fixture used by the TCGCSV importer.",
+)
+async def list_tcgcsv_groups(_: CurrentUserDep) -> list[TcgplayerGroupRead]:
+    """List fixture groups the TCGCSV importer can sync."""
+    return [TcgplayerGroupRead.from_group(group) for group in load_optcg_groups()]
+
+
 @router.post(
     "/{source}/sync",
     response_model=StartSyncResponse,
@@ -54,13 +67,14 @@ async def list_importers(
         202: {"description": "Sync job queued"},
         401: {"description": "Not authenticated"},
         409: {"description": "A sync is already in progress for this source"},
-        422: {"description": "Unknown importer source"},
+        422: {"description": "Unknown importer source or group id"},
     },
 )
 async def start_sync(
     source: str,
     db: AsyncSessionDep,
     current_user: CurrentUserDep,
+    body: StartSyncRequest | None = None,
 ) -> StartSyncResponse:
     """Queue a background catalog sync for the given source."""
     try:
@@ -71,7 +85,19 @@ async def start_sync(
             raise http_exception
         raise
 
+    request = body or StartSyncRequest()
     normalized = source.strip().lower()
+    params: dict[str, list[int]] = {}
+    if request.group_ids is not None:
+        try:
+            resolve_groups(request.group_ids)
+        except ValidationError as exc:
+            http_exception = handle_exception(exc)
+            if http_exception:
+                raise http_exception
+            raise
+        params = {"group_ids": request.group_ids}
+
     active = await get_active_job_for_source(db, normalized)
     if active is not None:
         raise HTTPException(
@@ -80,7 +106,7 @@ async def start_sync(
         )
 
     try:
-        job = await create_job(db, source=normalized, user_id=current_user["id"])
+        job = await create_job(db, source=normalized, user_id=current_user["id"], params=params)
     except IntegrityError:
         await db.rollback()
         raise HTTPException(

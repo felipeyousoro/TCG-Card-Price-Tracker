@@ -25,7 +25,7 @@ class OptcgCatalogService:
     ) -> tuple[int, int]:
         """Insert cards that do not already exist for the same name and set.
 
-        Skips rows whose `(game, name, set_code)` is already in the catalog
+        Skips rows whose `(game, name, set_name)` is already in the catalog
         or duplicated within the incoming payload. Writes a `card` row and an
         `optcg_card` detail row in the same transaction.
 
@@ -37,21 +37,31 @@ class OptcgCatalogService:
             A tuple of `(inserted, skipped)` counts.
         """
         result = await db.execute(
-            select(Card.name, Card.set_code).where(Card.game == CardGame.OPTCG.value)
+            select(Card.name, Card.set_name, Card.tcgplayer_id).where(Card.game == CardGame.OPTCG.value)
         )
-        existing = {(row.name, row.set_code) for row in result.all()}
+        rows = result.all()
+        existing = {(row.name, row.set_name) for row in rows}
+        existing_ids = {row.tcgplayer_id for row in rows}
 
         to_insert: list[OptcgCardCreate] = []
         skipped = 0
         seen_in_payload: set[tuple[str, str]] = set()
+        seen_ids: set[int] = set()
 
         for card in cards:
-            key = (card.card_name, card.set_id)
-            if key in existing or key in seen_in_payload:
+            key = (card.card_name, card.set_name)
+            if (
+                key in existing
+                or key in seen_in_payload
+                or card.tcgplayer_id in existing_ids
+                or card.tcgplayer_id in seen_ids
+            ):
                 skipped += 1
                 continue
             seen_in_payload.add(key)
+            seen_ids.add(card.tcgplayer_id)
             existing.add(key)
+            existing_ids.add(card.tcgplayer_id)
             to_insert.append(card)
 
         for offset in range(0, len(to_insert), INSERT_BATCH_SIZE):
@@ -62,7 +72,7 @@ class OptcgCatalogService:
                     game=CardGame.OPTCG.value,
                     name=source.card_name,
                     set_name=source.set_name,
-                    set_code=source.set_id,
+                    tcgplayer_id=source.tcgplayer_id,
                     card_number=source.card_set_id,
                     rarity=source.rarity,
                     card_type=source.card_type,
@@ -84,7 +94,6 @@ class OptcgCatalogService:
                         sub_types=source.sub_types,
                         counter_amount=source.counter_amount,
                         attribute=source.attribute,
-                        card_image_id=source.card_image_id,
                     )
                     for identity, source in identities
                 ]
@@ -120,7 +129,7 @@ class OptcgCatalogService:
             )
             .join(OptcgCard)
             .where(*filters)
-            .order_by(Card.set_code.asc(), Card.card_number.asc())
+            .order_by(Card.set_name.asc(), Card.card_number.asc())
             .offset(skip)
             .limit(limit)
         )

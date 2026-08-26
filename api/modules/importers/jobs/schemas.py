@@ -34,6 +34,15 @@ class SyncJobRead(BaseModel):
     finished_at: datetime | None = None
 
 
+class StartSyncRequest(BaseModel):
+    """Optional scope for a catalog sync."""
+
+    group_ids: list[int] | None = Field(
+        default=None,
+        description="TCGPlayer group ids to import. Omit to import every enabled fixture group.",
+    )
+
+
 class StartSyncResponse(BaseModel):
     """Returned immediately after a sync job is queued."""
 
