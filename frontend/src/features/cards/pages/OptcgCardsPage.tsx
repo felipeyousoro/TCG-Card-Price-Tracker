@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { apiErrorMessage } from '../../../shared/api/errors'
@@ -42,6 +42,8 @@ export default function OptcgCardsPage() {
   const params = readListParams(searchParams)
   const [nameInput, setNameInput] = useState(params.name)
   const debouncedName = useDebouncedValue(nameInput, 300)
+  const debouncedNameRef = useRef(debouncedName)
+  debouncedNameRef.current = debouncedName
   const listParams = { ...params, name: debouncedName }
   const filtersQuery = useOptcgCardFilters()
   const listQuery = useOptcgCardList(listParams)
@@ -51,9 +53,9 @@ export default function OptcgCardsPage() {
   const [buyTarget, setBuyTarget] = useState<BuyTarget | null>(null)
 
   useEffect(() => {
-    if (params.name === debouncedName) return
+    if (params.name === debouncedNameRef.current) return
     setNameInput(params.name)
-  }, [debouncedName, params.name])
+  }, [params.name])
 
   function updateParams(next: OptcgCardListParams) {
     setSearchParams(toSearchParams(next))
