@@ -165,7 +165,7 @@ async def list_holdings(
     current_user: CurrentUserDep,
     stock: StockServiceDep,
     page: int = Query(default=1, ge=1),
-    items_per_page: int = Query(default=50, ge=1, le=100),
+    items_per_page: int = Query(default=20, ge=1, le=100),
 ) -> dict[str, Any]:
     """Return paginated card and product holdings."""
     data = await stock.list_holdings(

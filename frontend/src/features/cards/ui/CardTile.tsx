@@ -4,7 +4,9 @@ export default function CardTile({
   code,
   rarity,
   ownedQuantity = 0,
+  avgCost,
   isFavorite = false,
+  buyLabel = 'Buy',
   onBuy,
   onToggleFavorite,
 }: {
@@ -13,7 +15,9 @@ export default function CardTile({
   code: string
   rarity?: string
   ownedQuantity?: number
+  avgCost?: string
   isFavorite?: boolean
+  buyLabel?: string
   onBuy?: () => void
   onToggleFavorite?: () => void
 }) {
@@ -50,13 +54,14 @@ export default function CardTile({
         <p className="truncate text-xs text-slate-400" title={rarity ? `${code} · ${rarity}` : code}>
           {rarity ? `${code} · ${rarity}` : code}
         </p>
+        {avgCost ? <p className="text-xs text-slate-300">Avg {avgCost}</p> : null}
         {onBuy ? (
           <button
             type="button"
             onClick={onBuy}
             className="w-full rounded-md border border-slate-700 py-1 text-xs text-amber-400 transition hover:border-amber-500/40"
           >
-            Buy
+            {buyLabel}
           </button>
         ) : null}
       </div>

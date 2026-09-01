@@ -92,5 +92,5 @@ export type PaginatedTransactions = {
   items_per_page: number | null
 }
 
-export const STOCK_PAGE_SIZE = 50
+export const STOCK_PAGE_SIZE = 20
 export const HISTORY_PAGE_SIZE = 20
