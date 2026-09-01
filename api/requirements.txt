@@ -1,0 +1,17 @@
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlalchemy>=2.0.36
+asyncpg>=0.30.0
+psycopg2-binary>=2.9.10
+alembic>=1.14.0
+pydantic>=2.10.0
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.1
+fastcrud>=0.15.0
+httpx>=0.28.0
+typer>=0.15.0
+bcrypt>=4.2.0
+user-agents>=2.2.0
+itsdangerous>=2.2.0
+python-multipart>=0.0.18
+starlette>=0.41.0

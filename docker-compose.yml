@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: optcg
+      POSTGRES_PASSWORD: optcg
+      POSTGRES_DB: optcg
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U optcg -d optcg"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://optcg:optcg@db:5432/optcg
+      CORS_ORIGINS: http://localhost:8106
+      SESSION_SECURE_COOKIES: "false"
+      CREATE_TABLES_ON_STARTUP: "False"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    ports:
+      - "8106:8106"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
