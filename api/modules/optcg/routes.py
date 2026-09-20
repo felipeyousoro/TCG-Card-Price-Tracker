@@ -7,7 +7,7 @@ from fastcrud import PaginatedListResponse, compute_offset, paginated_response
 
 from ...core.dependencies import AsyncSessionDep, CurrentUserDep
 from .dependencies import OptcgCatalogServiceDep
-from .schemas import OptcgCardFilterOptions, OptcgCardListItem
+from .schemas import OptcgCardFilterOptions, OptcgCardListItem, OptcgCardSort
 
 router = APIRouter(prefix="/optcg", tags=["OPTCG"])
 
@@ -32,7 +32,7 @@ async def get_card_filters(
     "/cards",
     response_model=PaginatedListResponse[OptcgCardListItem],
     summary="List OPTCG cards",
-    description="Returns a paginated catalog page. Filter by name, color, rarity, or set name.",
+    description="Returns a paginated catalog page. Filter by name, colors, rarities, or set names.",
     responses={401: {"description": "Not authenticated"}},
 )
 async def list_cards(
@@ -42,9 +42,11 @@ async def list_cards(
     page: int = Query(default=1, ge=1),
     items_per_page: int = Query(default=50, ge=1, le=100),
     name: str | None = Query(default=None),
-    color: str | None = Query(default=None),
-    rarity: str | None = Query(default=None),
-    set_name: str | None = Query(default=None),
+    color: list[str] | None = Query(default=None),
+    rarity: list[str] | None = Query(default=None),
+    set_name: list[str] | None = Query(default=None),
+    base_only: bool = Query(default=False),
+    sort: OptcgCardSort = Query(default="set"),
 ) -> dict[str, Any]:
     """Return a paginated list of OPTCG catalog cards."""
     cards_data = await catalog.list_paginated(
@@ -52,8 +54,10 @@ async def list_cards(
         skip=compute_offset(page, items_per_page),
         limit=items_per_page,
         name=name.strip() if name else None,
-        color=color.strip() if color else None,
-        rarity=rarity.strip() if rarity else None,
-        set_name=set_name.strip() if set_name else None,
+        colors=color or [],
+        rarities=rarity or [],
+        set_names=set_name or [],
+        base_only=base_only,
+        sort=sort,
     )
     return paginated_response(crud_data=cards_data, page=page, items_per_page=items_per_page)

@@ -1,6 +1,9 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+OptcgCardSort = Literal["set", "number", "number_desc"]
 
 
 class OptcgCardBase(BaseModel):

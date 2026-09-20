@@ -8,10 +8,13 @@ export async function listOptcgCards(params: OptcgCardListParams) {
       page: params.page,
       items_per_page: OPTCG_PAGE_SIZE,
       name: params.name || undefined,
-      color: params.color || undefined,
-      rarity: params.rarity || undefined,
-      set_name: params.set_name || undefined,
+      color: params.colors.length ? params.colors : undefined,
+      rarity: params.rarities.length ? params.rarities : undefined,
+      set_name: params.set_names.length ? params.set_names : undefined,
+      base_only: params.base_only || undefined,
+      sort: params.sort === 'set' ? undefined : params.sort,
     },
+    paramsSerializer: { indexes: null },
   })
   return data
 }

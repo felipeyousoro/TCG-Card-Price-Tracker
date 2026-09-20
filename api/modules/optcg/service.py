@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, func, not_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 from sqlalchemy.sql import Select
@@ -10,7 +10,10 @@ from fastcrud.types import GetMultiResponseDict
 from ..cards.enums import CardGame
 from ..cards.models import Card
 from .models import OptcgCard
-from .schemas import OptcgCardCreate, OptcgCardFilterOptions
+from .schemas import OptcgCardCreate, OptcgCardFilterOptions, OptcgCardSort
+
+SET_FILTER_EXCLUDED_WORDS = ("starter", "release", "cards")
+BASE_NAME_PAREN_PATTERN = r"\([^)]+\)"
 
 INSERT_BATCH_SIZE = 500
 
@@ -108,13 +111,21 @@ class OptcgCatalogService:
         db: AsyncSession,
         skip: int,
         limit: int,
-        color: str | None = None,
-        rarity: str | None = None,
-        set_name: str | None = None,
+        colors: list[str] | None = None,
+        rarities: list[str] | None = None,
+        set_names: list[str] | None = None,
         name: str | None = None,
+        base_only: bool = False,
+        sort: OptcgCardSort = "set",
     ) -> GetMultiResponseDict:
         """Return a page of OPTCG catalog cards, optionally filtered."""
-        filters = _optcg_filters(color=color, rarity=rarity, set_name=set_name, name=name)
+        filters = _optcg_filters(
+            colors=colors,
+            rarities=rarities,
+            set_names=set_names,
+            name=name,
+            base_only=base_only,
+        )
 
         count_stmt = select(func.count()).select_from(Card).join(OptcgCard).where(*filters)
         total = int((await db.execute(count_stmt)).scalar_one())
@@ -129,7 +140,7 @@ class OptcgCatalogService:
             )
             .join(OptcgCard)
             .where(*filters)
-            .order_by(Card.set_name.asc(), Card.card_number.asc())
+            .order_by(*_optcg_order(sort))
             .offset(skip)
             .limit(limit)
         )
@@ -153,7 +164,7 @@ class OptcgCatalogService:
         return OptcgCardFilterOptions(
             colors=await _distinct_optcg_colors(db),
             rarities=await _distinct_card_values(db, Card.rarity),
-            set_names=await _distinct_card_values(db, Card.set_name),
+            set_names=_catalog_set_names(await _distinct_card_values(db, Card.set_name)),
         )
 
 
@@ -162,21 +173,47 @@ def _ilike_contains(value: str) -> str:
     return f"%{escaped}%"
 
 
+def _clean_values(values: list[str] | None) -> list[str]:
+    return [value.strip() for value in values or [] if value.strip()]
+
+
+def _catalog_set_names(names: list[str]) -> list[str]:
+    return [
+        name
+        for name in names
+        if not any(word in name.lower() for word in SET_FILTER_EXCLUDED_WORDS)
+    ]
+
+
+def _optcg_order(sort: OptcgCardSort) -> tuple[ColumnElement[Any], ...]:
+    if sort == "number":
+        return (Card.card_number.asc(),)
+    if sort == "number_desc":
+        return (Card.card_number.desc(),)
+    return (Card.set_name.asc(), Card.card_number.asc())
+
+
 def _optcg_filters(
-    color: str | None = None,
-    rarity: str | None = None,
-    set_name: str | None = None,
+    colors: list[str] | None = None,
+    rarities: list[str] | None = None,
+    set_names: list[str] | None = None,
     name: str | None = None,
+    base_only: bool = False,
 ) -> list[ColumnElement[bool]]:
     filters: list[ColumnElement[bool]] = [Card.game == CardGame.OPTCG.value]
-    if color:
-        filters.append(OptcgCard.card_color == color)
-    if rarity:
-        filters.append(Card.rarity == rarity)
-    if set_name:
-        filters.append(Card.set_name == set_name)
+    cleaned_colors = _clean_values(colors)
+    cleaned_rarities = _clean_values(rarities)
+    cleaned_set_names = _clean_values(set_names)
+    if cleaned_colors:
+        filters.append(OptcgCard.card_color.in_(cleaned_colors))
+    if cleaned_rarities:
+        filters.append(Card.rarity.in_(cleaned_rarities))
+    if cleaned_set_names:
+        filters.append(Card.set_name.in_(cleaned_set_names))
     if name:
         filters.append(Card.name.ilike(_ilike_contains(name), escape="\\"))
+    if base_only:
+        filters.append(not_(Card.name.op("~")(BASE_NAME_PAREN_PATTERN)))
     return filters
 
 

@@ -1,11 +1,63 @@
-const selectClass =
-  'w-full rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-sm text-slate-100 outline-none transition focus:border-amber-500/60'
+import { useState } from 'react'
 
 export type CardFilterValues = {
-  name: string
-  color: string
-  rarity: string
-  set_name: string
+  colors: string[]
+  rarities: string[]
+  set_names: string[]
+}
+
+function toggleValue(selected: string[], value: string) {
+  return selected.includes(value) ? selected.filter((item) => item !== value) : [...selected, value]
+}
+
+function FilterSection({
+  title,
+  options,
+  selected,
+  onChange,
+}: {
+  title: string
+  options: string[]
+  selected: string[]
+  onChange: (next: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="border-b border-slate-800 last:border-b-0">
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm text-slate-200 transition hover:text-amber-400"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+      >
+        <span>
+          {title}
+          {selected.length > 0 ? (
+            <span className="ml-1 text-slate-500">({selected.length})</span>
+          ) : null}
+        </span>
+        <span className="text-slate-500">{open ? '−' : '+'}</span>
+      </button>
+      {open ? (
+        <ul className="max-h-56 space-y-1 overflow-y-auto pb-3">
+          {options.map((option) => (
+            <li key={option}>
+              <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 rounded border-slate-600 bg-slate-900 text-amber-500"
+                  checked={selected.includes(option)}
+                  onChange={() => onChange(toggleValue(selected, option))}
+                />
+                <span>{option}</span>
+              </label>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
 }
 
 export default function CardFilters({
@@ -22,61 +74,25 @@ export default function CardFilters({
   onChange: (next: CardFilterValues) => void
 }) {
   return (
-    <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <label className="block text-sm">
-        <span className="mb-1.5 block text-slate-400">Search by name</span>
-        <input
-          className={selectClass}
-          value={values.name}
-          onChange={(event) => onChange({ ...values, name: event.target.value })}
-          placeholder="Luffy"
-        />
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1.5 block text-slate-400">Color</span>
-        <select
-          className={selectClass}
-          value={values.color}
-          onChange={(event) => onChange({ ...values, color: event.target.value })}
-        >
-          <option value="">All</option>
-          {colors.map((color) => (
-            <option key={color} value={color}>
-              {color}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1.5 block text-slate-400">Rarity</span>
-        <select
-          className={selectClass}
-          value={values.rarity}
-          onChange={(event) => onChange({ ...values, rarity: event.target.value })}
-        >
-          <option value="">All</option>
-          {rarities.map((rarity) => (
-            <option key={rarity} value={rarity}>
-              {rarity}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block text-sm">
-        <span className="mb-1.5 block text-slate-400">Set</span>
-        <select
-          className={selectClass}
-          value={values.set_name}
-          onChange={(event) => onChange({ ...values, set_name: event.target.value })}
-        >
-          <option value="">All</option>
-          {setNames.map((setName) => (
-            <option key={setName} value={setName}>
-              {setName}
-            </option>
-          ))}
-        </select>
-      </label>
-    </div>
+    <aside className="mb-6 shrink-0 rounded-lg border border-slate-800 bg-slate-900/40 px-3 py-1 lg:mb-0 lg:w-64">
+      <FilterSection
+        title="Color"
+        options={colors}
+        selected={values.colors}
+        onChange={(next) => onChange({ ...values, colors: next })}
+      />
+      <FilterSection
+        title="Rarity"
+        options={rarities}
+        selected={values.rarities}
+        onChange={(next) => onChange({ ...values, rarities: next })}
+      />
+      <FilterSection
+        title="Set"
+        options={setNames}
+        selected={values.set_names}
+        onChange={(next) => onChange({ ...values, set_names: next })}
+      />
+    </aside>
   )
 }
