@@ -1,7 +1,7 @@
 """add sell snapshot cost and realized gain
 
 Revision ID: c9d2a4e7b1f0
-Revises: f6c93e1a4b32
+Revises: a8e15f3c6d54
 Create Date: 2026-09-20 18:00:00.000000
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 
 revision: str = "c9d2a4e7b1f0"
-down_revision: Union[str, None] = "f6c93e1a4b32"
+down_revision: Union[str, None] = "a8e15f3c6d54"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
