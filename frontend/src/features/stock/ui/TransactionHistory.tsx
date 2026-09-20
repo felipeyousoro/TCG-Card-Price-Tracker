@@ -1,5 +1,5 @@
 import PaginationBar from '../../cards/ui/PaginationBar'
-import { formatMoney } from '../model/format'
+import { formatMoney, formatSignedMoney } from '../model/format'
 import type { StockTransaction } from '../model/types'
 import { HISTORY_PAGE_SIZE } from '../model/types'
 
@@ -51,7 +51,14 @@ export default function TransactionHistory({
                 <span>
                   {line.quantity}× {line.name}
                 </span>
-                <span className="text-slate-400">{formatMoney(line.line_total)}</span>
+                <span className="text-right text-slate-400">
+                  {formatMoney(line.line_total)}
+                  {transaction.transaction_type === 'sell' && line.realized_gain != null ? (
+                    <span className={`ml-2 ${line.realized_gain >= 0 ? 'text-emerald-400' : 'text-red-300'}`}>
+                      {formatSignedMoney(line.realized_gain)}
+                    </span>
+                  ) : null}
+                </span>
               </li>
             ))}
           </ul>

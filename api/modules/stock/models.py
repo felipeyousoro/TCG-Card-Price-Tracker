@@ -78,6 +78,14 @@ class StockTransaction(Base):
         default=None,
         index=True,
     )
+    avg_unit_cost_at_sale: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2),
+        default=None,
+    )
+    realized_gain: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2),
+        default=None,
+    )
 
     transaction: Mapped[InventoryTransaction] = relationship(back_populates="lines", init=False)
 

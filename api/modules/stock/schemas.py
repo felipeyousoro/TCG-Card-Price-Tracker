@@ -46,6 +46,16 @@ class BuyProductRequest(BaseModel):
     shipping_cost: Decimal = Field(default=Decimal("0"), ge=0)
 
 
+class SellRequest(BaseModel):
+    """Single-line sell of a catalog card or product."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    quantity: int = Field(ge=1)
+    unit_price: Decimal = Field(ge=0)
+    transaction_date: date
+
+
 class TransactionCreate(BaseModel):
     """Multi-line buy order."""
 
@@ -97,6 +107,8 @@ class StockLineRead(BaseModel):
     shipping_per_unit: float
     effective_unit_cost: float
     line_total: float
+    avg_unit_cost_at_sale: float | None = None
+    realized_gain: float | None = None
 
 
 class TransactionRead(BaseModel):

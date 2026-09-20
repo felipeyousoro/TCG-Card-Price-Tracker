@@ -11,6 +11,7 @@ import type { HoldingItem } from '../model/types'
 import BuyDialog, { type BuyTarget } from '../ui/BuyDialog'
 import HoldingsTable from '../ui/HoldingsTable'
 import ImportBuyHistoryForm from '../ui/ImportBuyHistoryForm'
+import SellDialog, { type SellTarget } from '../ui/SellDialog'
 import TransactionHistory from '../ui/TransactionHistory'
 
 type StockTab = 'holdings' | 'history' | 'import'
@@ -28,6 +29,7 @@ export default function StockPage() {
   const historyQuery = useTransactions(tab === 'history' ? page : 1)
   const deleteMutation = useDeleteTransactionMutation()
   const [buyTarget, setBuyTarget] = useState<BuyTarget | null>(null)
+  const [sellTarget, setSellTarget] = useState<SellTarget | null>(null)
   const [showProductPicker, setShowProductPicker] = useState(false)
 
   const holdings = holdingsQuery.data?.data ?? []
@@ -52,12 +54,22 @@ export default function StockPage() {
     return { title: 'Holdings', description: 'What you own and the average you paid.' }
   }, [tab])
 
-  function holdingToTarget(item: HoldingItem): BuyTarget | null {
+  function holdingToBuyTarget(item: HoldingItem): BuyTarget | null {
     if (item.item_type === 'card' && item.card_id != null) {
       return { kind: 'card', id: item.card_id, name: item.name }
     }
     if (item.item_type === 'product' && item.product_id != null) {
       return { kind: 'product', id: item.product_id, name: item.name }
+    }
+    return null
+  }
+
+  function holdingToSellTarget(item: HoldingItem): SellTarget | null {
+    if (item.item_type === 'card' && item.card_id != null) {
+      return { kind: 'card', id: item.card_id, name: item.name, maxQuantity: item.quantity }
+    }
+    if (item.item_type === 'product' && item.product_id != null) {
+      return { kind: 'product', id: item.product_id, name: item.name, maxQuantity: item.quantity }
     }
     return null
   }
@@ -105,8 +117,12 @@ export default function StockPage() {
               totalCount={holdingsQuery.data?.total_count ?? 0}
               onPageChange={setPage}
               onBuy={(item) => {
-                const target = holdingToTarget(item)
+                const target = holdingToBuyTarget(item)
                 if (target) setBuyTarget(target)
+              }}
+              onSell={(item) => {
+                const target = holdingToSellTarget(item)
+                if (target) setSellTarget(target)
               }}
             />
           ) : null}
@@ -117,7 +133,7 @@ export default function StockPage() {
         <div className="space-y-4">
           {historyQuery.isLoading ? <p className="text-slate-400">Loading history…</p> : null}
           {historyQuery.isError ? <StatusBanner tone="error">{apiErrorMessage(historyQuery.error)}</StatusBanner> : null}
-          {historyQuery.data && transactions.length === 0 ? <p className="text-slate-400">No buys recorded yet.</p> : null}
+          {historyQuery.data && transactions.length === 0 ? <p className="text-slate-400">No transactions yet.</p> : null}
           {transactions.length > 0 ? (
             <TransactionHistory
               items={transactions}
@@ -135,6 +151,7 @@ export default function StockPage() {
       {tab === 'import' ? <ImportBuyHistoryForm /> : null}
 
       {buyTarget ? <BuyDialog target={buyTarget} onClose={() => setBuyTarget(null)} /> : null}
+      {sellTarget ? <SellDialog target={sellTarget} onClose={() => setSellTarget(null)} /> : null}
     </>
   )
 }

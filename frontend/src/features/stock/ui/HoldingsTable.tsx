@@ -10,12 +10,14 @@ export default function HoldingsTable({
   totalCount,
   onPageChange,
   onBuy,
+  onSell,
 }: {
   items: HoldingItem[]
   page: number
   totalCount: number
   onPageChange: (page: number) => void
   onBuy: (item: HoldingItem) => void
+  onSell: (item: HoldingItem) => void
 }) {
   return (
     <>
@@ -30,6 +32,7 @@ export default function HoldingsTable({
             avgCost={formatMoney(item.avg_unit_cost)}
             buyLabel="Buy more"
             onBuy={() => onBuy(item)}
+            onSell={() => onSell(item)}
           />
         ))}
       </div>

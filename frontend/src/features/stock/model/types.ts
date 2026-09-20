@@ -21,6 +21,8 @@ export type StockLine = {
   shipping_per_unit: number
   effective_unit_cost: number
   line_total: number
+  avg_unit_cost_at_sale: number | null
+  realized_gain: number | null
 }
 
 export type StockTransaction = {
@@ -43,6 +45,12 @@ export type BuyPayload = {
   unit_price: number
   transaction_date: string
   shipping_cost?: number
+}
+
+export type SellPayload = {
+  transaction_date: string
+  quantity: number
+  unit_price: number
 }
 
 export type ImportPreviewMatch = {

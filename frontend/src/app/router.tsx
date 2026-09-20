@@ -4,6 +4,7 @@ import RequireAuth from '../features/auth/RequireAuth'
 import LoginPage from '../features/auth/pages/LoginPage'
 import CardGamesPage from '../features/cards/pages/CardGamesPage'
 import OptcgCardsPage from '../features/cards/pages/OptcgCardsPage'
+import DashboardsPage from '../features/dashboard/pages/DashboardsPage'
 import FavoritesPage from '../features/favorites/pages/FavoritesPage'
 import HomePage from '../features/home/pages/HomePage'
 import ImportersPage from '../features/importers/pages/ImportersPage'
@@ -22,6 +23,7 @@ export default function AppRouter() {
         <Route element={<RequireAuth />}>
           <Route element={<AppShell />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/dashboards" element={<DashboardsPage />} />
             <Route path="/cards" element={<CardGamesPage />} />
             <Route path="/cards/optcg" element={<OptcgCardsPage />} />
             <Route path="/stock" element={<StockPage />} />

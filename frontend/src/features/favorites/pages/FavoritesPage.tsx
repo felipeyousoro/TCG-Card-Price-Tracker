@@ -7,6 +7,7 @@ import StatusBanner from '../../../shared/ui/StatusBanner'
 import PaginationBar from '../../cards/ui/PaginationBar'
 import CardTile from '../../cards/ui/CardTile'
 import BuyDialog, { type BuyTarget } from '../../stock/ui/BuyDialog'
+import SellDialog, { type SellTarget } from '../../stock/ui/SellDialog'
 import { useStockQuantities } from '../../stock/model/queries'
 import { useToggleCardFavorite, useToggleProductFavorite } from '../model/mutations'
 import { useFavoritesList } from '../model/queries'
@@ -21,6 +22,7 @@ export default function FavoritesPage() {
   const toggleCard = useToggleCardFavorite()
   const toggleProduct = useToggleProductFavorite()
   const [buyTarget, setBuyTarget] = useState<BuyTarget | null>(null)
+  const [sellTarget, setSellTarget] = useState<SellTarget | null>(null)
 
   const items = listQuery.data?.data ?? []
   const totalCount = listQuery.data?.total_count ?? 0
@@ -53,6 +55,27 @@ export default function FavoritesPage() {
                       ? () => setBuyTarget({ kind: 'product', id: item.product_id as number, name: item.name })
                       : undefined
                 }
+                onSell={
+                  owned > 0
+                    ? item.card_id != null
+                      ? () =>
+                          setSellTarget({
+                            kind: 'card',
+                            id: item.card_id as number,
+                            name: item.name,
+                            maxQuantity: owned,
+                          })
+                      : item.product_id != null
+                        ? () =>
+                            setSellTarget({
+                              kind: 'product',
+                              id: item.product_id as number,
+                              name: item.name,
+                              maxQuantity: owned,
+                            })
+                        : undefined
+                    : undefined
+                }
                 onToggleFavorite={() => {
                   if (item.card_id != null) {
                     toggleCard.mutate({ cardId: item.card_id, isFavorite: true })
@@ -78,6 +101,7 @@ export default function FavoritesPage() {
         />
       ) : null}
       {buyTarget ? <BuyDialog target={buyTarget} onClose={() => setBuyTarget(null)} /> : null}
+      {sellTarget ? <SellDialog target={sellTarget} onClose={() => setSellTarget(null)} /> : null}
     </>
   )
 }

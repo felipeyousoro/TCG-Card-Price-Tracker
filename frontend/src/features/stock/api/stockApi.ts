@@ -5,6 +5,7 @@ import type {
   ImportPreviewResult,
   PaginatedHoldings,
   PaginatedTransactions,
+  SellPayload,
   StockQuantities,
   StockTransaction,
   TransactionCreate,
@@ -37,6 +38,16 @@ export async function buyCard(cardId: number, payload: BuyPayload) {
 
 export async function buyProduct(productId: number, payload: BuyPayload) {
   const { data } = await http.post<StockTransaction>(`/stock/products/${productId}/buy`, payload)
+  return data
+}
+
+export async function sellCard(cardId: number, payload: SellPayload) {
+  const { data } = await http.post<StockTransaction>(`/stock/cards/${cardId}/sell`, payload)
+  return data
+}
+
+export async function sellProduct(productId: number, payload: SellPayload) {
+  const { data } = await http.post<StockTransaction>(`/stock/products/${productId}/sell`, payload)
   return data
 }
 

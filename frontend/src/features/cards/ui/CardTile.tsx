@@ -8,6 +8,7 @@ export default function CardTile({
   isFavorite = false,
   buyLabel = 'Buy',
   onBuy,
+  onSell,
   onToggleFavorite,
 }: {
   image_url: string | null
@@ -19,6 +20,7 @@ export default function CardTile({
   isFavorite?: boolean
   buyLabel?: string
   onBuy?: () => void
+  onSell?: () => void
   onToggleFavorite?: () => void
 }) {
   return (
@@ -55,14 +57,27 @@ export default function CardTile({
           {rarity ? `${code} · ${rarity}` : code}
         </p>
         {avgCost ? <p className="text-xs text-slate-300">Avg {avgCost}</p> : null}
-        {onBuy ? (
-          <button
-            type="button"
-            onClick={onBuy}
-            className="w-full rounded-md border border-slate-700 py-1 text-xs text-amber-400 transition hover:border-amber-500/40"
-          >
-            {buyLabel}
-          </button>
+        {onBuy || onSell ? (
+          <div className="flex gap-2">
+            {onBuy ? (
+              <button
+                type="button"
+                onClick={onBuy}
+                className="min-w-0 flex-1 rounded-md border border-slate-700 py-1 text-xs text-amber-400 transition hover:border-amber-500/40"
+              >
+                {buyLabel}
+              </button>
+            ) : null}
+            {onSell ? (
+              <button
+                type="button"
+                onClick={onSell}
+                className="min-w-0 flex-1 rounded-md border border-slate-700 py-1 text-xs text-emerald-400 transition hover:border-emerald-500/40"
+              >
+                Sell
+              </button>
+            ) : null}
+          </div>
         ) : null}
       </div>
     </article>

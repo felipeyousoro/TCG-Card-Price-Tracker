@@ -14,6 +14,7 @@ from .schemas import (
     HoldingItem,
     ImportPreviewRequest,
     ImportPreviewResult,
+    SellRequest,
     StockQuantities,
     TransactionCreate,
     TransactionRead,
@@ -152,6 +153,50 @@ async def buy_product(
 ) -> TransactionRead:
     """Record a one-line product purchase."""
     return await stock.buy_product(db, current_user["id"], product_id, payload)
+
+
+@router.post(
+    "/cards/{card_id}/sell",
+    status_code=201,
+    response_model=TransactionRead,
+    summary="Record a single-card sell",
+    responses={
+        400: {"description": "Not enough quantity to sell"},
+        401: {"description": "Not authenticated"},
+        404: {"description": "Card not found"},
+    },
+)
+async def sell_card(
+    card_id: int,
+    payload: SellRequest,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    stock: StockServiceDep,
+) -> TransactionRead:
+    """Record a one-line card sale against current average cost."""
+    return await stock.sell_card(db, current_user["id"], card_id, payload)
+
+
+@router.post(
+    "/products/{product_id}/sell",
+    status_code=201,
+    response_model=TransactionRead,
+    summary="Record a single-product sell",
+    responses={
+        400: {"description": "Not enough quantity to sell"},
+        401: {"description": "Not authenticated"},
+        404: {"description": "Product not found"},
+    },
+)
+async def sell_product(
+    product_id: int,
+    payload: SellRequest,
+    db: AsyncSessionDep,
+    current_user: CurrentUserDep,
+    stock: StockServiceDep,
+) -> TransactionRead:
+    """Record a one-line product sale against current average cost."""
+    return await stock.sell_product(db, current_user["id"], product_id, payload)
 
 
 @router.get(

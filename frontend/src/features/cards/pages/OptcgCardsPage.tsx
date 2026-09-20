@@ -8,6 +8,7 @@ import StatusBanner from '../../../shared/ui/StatusBanner'
 import { useToggleCardFavorite } from '../../favorites/model/mutations'
 import { useFavoriteIds } from '../../favorites/model/queries'
 import BuyDialog, { type BuyTarget } from '../../stock/ui/BuyDialog'
+import SellDialog, { type SellTarget } from '../../stock/ui/SellDialog'
 import { useStockQuantities } from '../../stock/model/queries'
 import { useOptcgCardFilters, useOptcgCardList } from '../model/queries'
 import type { OptcgCardListParams, OptcgCardSort } from '../model/types'
@@ -76,6 +77,7 @@ export default function OptcgCardsPage() {
   const favoriteIdsQuery = useFavoriteIds()
   const toggleFavorite = useToggleCardFavorite()
   const [buyTarget, setBuyTarget] = useState<BuyTarget | null>(null)
+  const [sellTarget, setSellTarget] = useState<SellTarget | null>(null)
   const paramsRef = useRef(params)
   paramsRef.current = params
 
@@ -176,21 +178,35 @@ export default function OptcgCardsPage() {
           ) : null}
           {cards.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {cards.map((card) => (
-                <CardTile
-                  key={card.id}
-                  image_url={card.card_image}
-                  name={card.card_name}
-                  code={card.card_set_id}
-                  rarity={card.rarity}
-                  ownedQuantity={quantitiesQuery.data?.cards[String(card.id)] ?? 0}
-                  isFavorite={favoriteCardIds.has(card.id)}
-                  onBuy={() => setBuyTarget({ kind: 'card', id: card.id, name: card.card_name })}
-                  onToggleFavorite={() =>
-                    toggleFavorite.mutate({ cardId: card.id, isFavorite: favoriteCardIds.has(card.id) })
-                  }
-                />
-              ))}
+              {cards.map((card) => {
+                const ownedQuantity = quantitiesQuery.data?.cards[String(card.id)] ?? 0
+                return (
+                  <CardTile
+                    key={card.id}
+                    image_url={card.card_image}
+                    name={card.card_name}
+                    code={card.card_set_id}
+                    rarity={card.rarity}
+                    ownedQuantity={ownedQuantity}
+                    isFavorite={favoriteCardIds.has(card.id)}
+                    onBuy={() => setBuyTarget({ kind: 'card', id: card.id, name: card.card_name })}
+                    onSell={
+                      ownedQuantity > 0
+                        ? () =>
+                            setSellTarget({
+                              kind: 'card',
+                              id: card.id,
+                              name: card.card_name,
+                              maxQuantity: ownedQuantity,
+                            })
+                        : undefined
+                    }
+                    onToggleFavorite={() =>
+                      toggleFavorite.mutate({ cardId: card.id, isFavorite: favoriteCardIds.has(card.id) })
+                    }
+                  />
+                )
+              })}
             </div>
           ) : null}
           {listQuery.data && totalCount > 0 ? (
@@ -204,6 +220,7 @@ export default function OptcgCardsPage() {
         </div>
       </div>
       {buyTarget ? <BuyDialog target={buyTarget} onClose={() => setBuyTarget(null)} /> : null}
+      {sellTarget ? <SellDialog target={sellTarget} onClose={() => setSellTarget(null)} /> : null}
     </>
   )
 }

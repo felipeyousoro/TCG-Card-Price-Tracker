@@ -8,3 +8,10 @@ export function todayISODate() {
 export function formatMoney(value: number) {
   return value.toFixed(2)
 }
+
+export function formatSignedMoney(value: number) {
+  const abs = formatMoney(Math.abs(value))
+  if (value > 0) return `+${abs}`
+  if (value < 0) return `-${abs}`
+  return abs
+}

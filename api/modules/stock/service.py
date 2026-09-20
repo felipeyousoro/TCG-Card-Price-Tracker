@@ -20,6 +20,7 @@ from .schemas import (
     ImportPreviewLine,
     ImportPreviewMatch,
     ImportPreviewResult,
+    SellRequest,
     StockLineRead,
     StockQuantities,
     TransactionCreate,
@@ -31,7 +32,7 @@ FOURPLACES = Decimal("0.0001")
 
 
 class StockService:
-    """Record buys, maintain aggregate holdings, and list history."""
+    """Record buys and sells, maintain aggregate holdings, and list history."""
 
     def __init__(self, products: ProductCatalogService | None = None) -> None:
         self.products = products or ProductCatalogService()
@@ -79,6 +80,91 @@ class StockService:
                 )
             ],
         )
+
+    async def sell_card(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        card_id: int,
+        payload: SellRequest,
+    ) -> TransactionRead:
+        await _require_card(db, card_id)
+        return await self.record_sell(
+            db,
+            user_id=user_id,
+            transaction_date=payload.transaction_date,
+            quantity=payload.quantity,
+            unit_price=payload.unit_price,
+            card_id=card_id,
+        )
+
+    async def sell_product(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        product_id: int,
+        payload: SellRequest,
+    ) -> TransactionRead:
+        await _require_product(db, product_id)
+        return await self.record_sell(
+            db,
+            user_id=user_id,
+            transaction_date=payload.transaction_date,
+            quantity=payload.quantity,
+            unit_price=payload.unit_price,
+            product_id=product_id,
+        )
+
+    async def record_sell(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        transaction_date,
+        quantity: int,
+        unit_price: Decimal,
+        card_id: int | None = None,
+        product_id: int | None = None,
+    ) -> TransactionRead:
+        if (card_id is None) == (product_id is None):
+            raise BadRequestException(detail="Exactly one of card_id or product_id must be set")
+
+        qty = int(quantity)
+        unit_price = Decimal(unit_price).quantize(TWOPLACES)
+        holding = await _load_holding(db, user_id, card_id=card_id, product_id=product_id)
+        if holding is None or int(holding.quantity) < qty:
+            raise BadRequestException(detail="Not enough quantity to sell")
+
+        avg_at_sale = Decimal(holding.avg_unit_cost).quantize(TWOPLACES)
+        realized_gain = ((unit_price - avg_at_sale) * Decimal(qty)).quantize(TWOPLACES)
+        line_total = (unit_price * Decimal(qty)).quantize(TWOPLACES)
+
+        header = InventoryTransaction(
+            user_id=user_id,
+            transaction_type=TransactionType.SELL.value,
+            transaction_date=transaction_date,
+            shipping_cost=Decimal("0.00"),
+        )
+        db.add(header)
+        await db.flush()
+
+        db.add(
+            StockTransaction(
+                transaction_id=header.id,
+                user_id=user_id,
+                card_id=card_id,
+                product_id=product_id,
+                quantity=qty,
+                unit_price=unit_price,
+                shipping_per_unit=Decimal("0"),
+                effective_unit_cost=unit_price.quantize(FOURPLACES),
+                line_total=line_total,
+                avg_unit_cost_at_sale=avg_at_sale,
+                realized_gain=realized_gain,
+            )
+        )
+        await _apply_sell_holding(db, holding, qty)
+        await db.commit()
+        return await self.get_transaction(db, user_id, header.id)
 
     async def create_transaction(
         self,
@@ -433,6 +519,10 @@ async def _to_transaction_read(db: AsyncSession, header: InventoryTransaction) -
                 shipping_per_unit=float(line.shipping_per_unit),
                 effective_unit_cost=float(line.effective_unit_cost),
                 line_total=float(line.line_total),
+                avg_unit_cost_at_sale=(
+                    float(line.avg_unit_cost_at_sale) if line.avg_unit_cost_at_sale is not None else None
+                ),
+                realized_gain=float(line.realized_gain) if line.realized_gain is not None else None,
             )
         )
         total += Decimal(line.line_total)
@@ -461,6 +551,46 @@ async def _line_names(
         rows = (await db.execute(select(Product.id, Product.name).where(Product.id.in_(product_ids)))).all()
         names.update({("product", row.id): row.name for row in rows})
     return names
+
+
+async def _load_holding(
+    db: AsyncSession,
+    user_id: int,
+    card_id: int | None,
+    product_id: int | None,
+) -> UserCardStock | UserProductStock | None:
+    if card_id is not None:
+        return (
+            await db.execute(
+                select(UserCardStock).where(
+                    UserCardStock.user_id == user_id,
+                    UserCardStock.card_id == card_id,
+                )
+            )
+        ).scalar_one_or_none()
+    return (
+        await db.execute(
+            select(UserProductStock).where(
+                UserProductStock.user_id == user_id,
+                UserProductStock.product_id == product_id,
+            )
+        )
+    ).scalar_one_or_none()
+
+
+async def _apply_sell_holding(
+    db: AsyncSession,
+    holding: UserCardStock | UserProductStock,
+    quantity: int,
+) -> None:
+    new_qty = int(holding.quantity) - quantity
+    if new_qty < 0:
+        raise BadRequestException(detail="Not enough quantity to sell")
+    if new_qty == 0:
+        await db.delete(holding)
+        return
+    holding.quantity = new_qty
+    holding.updated_at = datetime.now(UTC)
 
 
 async def _apply_card_buy(
