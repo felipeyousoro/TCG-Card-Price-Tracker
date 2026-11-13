@@ -124,7 +124,9 @@ def create_application(
     elif hasattr(settings, "OPENAPI_PREFIX"):
         _openapi_prefix = settings.OPENAPI_PREFIX
 
-    metadata: dict[str, Any] = {"openapi_prefix": _openapi_prefix}
+    metadata: dict[str, Any] = {}
+    if _openapi_prefix:
+        metadata["root_path"] = _openapi_prefix
 
     if title is not None:
         metadata["title"] = title
